@@ -1,0 +1,25 @@
+{
+  "collection_name": "test_float32_noquant",
+  "config": "../qdrant-load/configs/config_float32_noquant.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 25,
+  "use_dense_prefetch": true,
+  "rescorer": "rrf",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.956,
+    "hit_rate@k": 0.956,
+    "mrr@k": 0.6418191742468056,
+    "ndcg@k": 0.7171349538331089
+  },
+  "latency": {
+    "mean_ms": 25.843010102137352,
+    "p50_ms": 25.659186008851975,
+    "p95_ms": 29.09395401366055,
+    "p99_ms": 30.47058201627806,
+    "min_ms": 21.028187009505928,
+    "max_ms": 42.268793971743435
+  },
+  "throughput_qps": 301.523492554739
+}

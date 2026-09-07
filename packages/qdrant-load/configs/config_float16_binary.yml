@@ -1,0 +1,26 @@
+collection_name: test_float16_binary # float16 base dtype with asymmetric binary quantization
+data:
+  # do not change data path -- vectors are computed server-side via Qdrant Cloud Inference
+  corpus:
+    path: ../../data/corpus.jsonl
+dense_vectors:
+  dtype: float16
+  quantization_config:
+    binary:
+      encoding: two_bits
+      query_encoding: scalar4bits
+      memory: pinned
+  memory: cached
+colbert_vectors:
+  dtype: float16
+  quantization_config:
+    binary:
+      encoding: one_and_half_bits
+      memory: pinned
+  memory: cached
+  multivector_config:
+    comparator: max_sim
+  hnsw_config:
+    m: 0 # indexing should be disabled since we are using these for rescoring (otherwise very expensive)
+sparse_vectors:
+  modifier: idf

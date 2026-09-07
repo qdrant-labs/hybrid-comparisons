@@ -1,0 +1,25 @@
+{
+  "collection_name": "test_turbo4_noquant",
+  "config": "../qdrant-load/configs/config_turbo4_noquant.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 25,
+  "use_dense_prefetch": false,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.882,
+    "hit_rate@k": 0.882,
+    "mrr@k": 0.6761539682539683,
+    "ndcg@k": 0.7265432041451197
+  },
+  "latency": {
+    "mean_ms": 548.118606161407,
+    "p50_ms": 530.2321120398119,
+    "p95_ms": 940.9212110331282,
+    "p99_ms": 1124.2584260180593,
+    "min_ms": 29.530189000070095,
+    "max_ms": 1254.539254005067
+  },
+  "throughput_qps": 1.9439211351823973
+}

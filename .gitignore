@@ -1,0 +1,9 @@
+target/
+data/
+storage/
+.venv/
+.ruff_cache/
+__pycache__/
+embeddings/
+packages/model-converter/
+.env

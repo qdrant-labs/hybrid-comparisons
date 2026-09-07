@@ -1,0 +1,24 @@
+{
+  "collection_name": "test_product_x16",
+  "config": "../qdrant-load/configs/config_product_x16.yml",
+  "n_queries": 500,
+  "k": 10,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": true,
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.954,
+    "hit_rate@k": 0.954,
+    "mrr@k": 0.7039992063492058,
+    "ndcg@k": 0.765001626879138
+  },
+  "latency": {
+    "mean_ms": 44.88155232226875,
+    "p50_ms": 44.44525099825114,
+    "p95_ms": 51.49750900454819,
+    "p99_ms": 59.40505099715665,
+    "min_ms": 35.191994000342675,
+    "max_ms": 81.80153599823825
+  },
+  "throughput_qps": 63.248737462986476
+}

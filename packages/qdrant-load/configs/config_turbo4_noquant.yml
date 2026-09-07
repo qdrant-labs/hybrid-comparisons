@@ -1,0 +1,17 @@
+collection_name: test_turbo4_noquant # turbo4 base dtype, no quantization (baseline)
+data:
+  # do not change data path -- vectors are computed server-side via Qdrant Cloud Inference
+  corpus:
+    path: ../../data/corpus.jsonl
+dense_vectors:
+  dtype: turbo4
+  memory: cached
+colbert_vectors:
+  dtype: turbo4
+  memory: cached
+  multivector_config:
+    comparator: max_sim
+  hnsw_config:
+    m: 0 # indexing should be disabled since we are using these for rescoring (otherwise very expensive)
+sparse_vectors:
+  modifier: idf

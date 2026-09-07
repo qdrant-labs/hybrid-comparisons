@@ -1,0 +1,25 @@
+{
+  "collection_name": "test_float16_binary",
+  "config": "../qdrant-load/configs/config_float16_binary.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": false,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.908,
+    "hit_rate@k": 0.908,
+    "mrr@k": 0.6923610611610611,
+    "ndcg@k": 0.7451160418797026
+  },
+  "latency": {
+    "mean_ms": 1209.5412731479512,
+    "p50_ms": 1128.5478720092215,
+    "p95_ms": 2117.5332060083747,
+    "p99_ms": 2516.9180359807797,
+    "min_ms": 28.567279048729688,
+    "max_ms": 3034.0036490233615
+  },
+  "throughput_qps": 0.8481137977120443
+}

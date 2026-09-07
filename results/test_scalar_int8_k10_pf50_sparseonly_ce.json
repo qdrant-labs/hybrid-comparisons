@@ -1,0 +1,25 @@
+{
+  "collection_name": "test_scalar_int8",
+  "config": "../qdrant-load/configs/config_scalar_int8.yml",
+  "n_queries": 500,
+  "k": 10,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": false,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.898,
+    "hit_rate@k": 0.898,
+    "mrr@k": 0.6915730158730157,
+    "ndcg@k": 0.742468548510232
+  },
+  "latency": {
+    "mean_ms": 1251.6150650440013,
+    "p50_ms": 1301.2405430199578,
+    "p95_ms": 2137.938454048708,
+    "p99_ms": 2389.5883220247924,
+    "min_ms": 28.038965014275163,
+    "max_ms": 2893.9906940213405
+  },
+  "throughput_qps": 0.820344989431372
+}

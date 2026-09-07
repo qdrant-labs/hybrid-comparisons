@@ -1,0 +1,24 @@
+{
+  "collection_name": "test_turbo4_tq1",
+  "config": "../qdrant-load/configs/config_tubo4_bits1.yml",
+  "n_queries": 500,
+  "k": 10,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": false,
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.922,
+    "hit_rate@k": 0.922,
+    "mrr@k": 0.6915198412698408,
+    "ndcg@k": 0.7480897123240393
+  },
+  "latency": {
+    "mean_ms": 54.554008198034836,
+    "p50_ms": 49.73307601176202,
+    "p95_ms": 75.39829099550843,
+    "p99_ms": 130.54611900588498,
+    "min_ms": 34.02761000324972,
+    "max_ms": 219.45979600423016
+  },
+  "throughput_qps": 70.43855500222419
+}

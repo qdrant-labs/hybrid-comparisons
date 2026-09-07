@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rescorer Trade-offs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f7f6f2;
+    --surface-card:   #fcfcfb;
+    --surface-sunken: #f0efe9;
+    --text-primary:   #14140f;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --border:         rgba(11,11,11,0.10);
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --accent:         #2a78d6;
+    --series-colbert: #2a78d6;
+    --series-ce:      #eb6834;
+    --series-rrf:     #1baf7a;
+    --series-hybrid:  #2a78d6;
+    --series-sparseonly: #eb6834;
+    --seq-100:        #cde2fb;
+    --seq-250:        #86b6ef;
+    --seq-450:        #2a78d6;
+    --seq-600:        #184f95;
+    --seq-700:        #0d366b;
+    --tooltip-bg:     #14140f;
+    --tooltip-fg:     #fcfcfb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #111110;
+      --surface-card:   #1a1a19;
+      --surface-sunken: #202020;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --border:         rgba(255,255,255,0.10);
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --accent:         #3987e5;
+      --series-colbert: #3987e5;
+      --series-ce:      #d95926;
+      --series-rrf:     #199e70;
+      --series-hybrid:  #3987e5;
+      --series-sparseonly: #d95926;
+      --seq-100:        #cde2fb;
+      --seq-250:        #86b6ef;
+      --seq-450:        #3987e5;
+      --seq-600:        #184f95;
+      --seq-700:        #0d366b;
+      --tooltip-bg:     #fcfcfb;
+      --tooltip-fg:     #14140f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #111110;
+    --surface-card:   #1a1a19;
+    --surface-sunken: #202020;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --border:         rgba(255,255,255,0.10);
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --accent:         #3987e5;
+    --series-colbert: #3987e5;
+    --series-ce:      #d95926;
+    --series-rrf:     #199e70;
+    --series-hybrid:  #3987e5;
+    --series-sparseonly: #d95926;
+    --seq-100:        #cde2fb;
+    --seq-250:        #86b6ef;
+    --seq-450:        #3987e5;
+    --seq-600:        #184f95;
+    --seq-700:        #0d366b;
+    --tooltip-bg:     #fcfcfb;
+    --tooltip-fg:     #14140f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 48px 24px 80px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  header.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 { font-size: 34px; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+  .dek { color: var(--text-secondary); font-size: 16px; max-width: 68ch; margin: 0; }
+  .method { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .method span b { color: var(--text-secondary); font-weight: 500; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stat { background: var(--surface-card); padding: 20px 22px; display: flex; flex-direction: column; gap: 6px; }
+  .stat .label {
+    font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.05em; font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  .stat .value { font-size: 28px; font-weight: 600; font-family: "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -0.01em; }
+  .stat .value.c-colbert { color: var(--series-colbert); }
+  .stat .value.c-ce { color: var(--series-ce); }
+  .stat .value.c-rrf { color: var(--series-rrf); }
+  .stat .note { font-size: 12.5px; color: var(--text-secondary); }
+
+  section.chart-section { display: flex; flex-direction: column; gap: 10px; }
+  .chart-head h2 { font-size: 18px; font-weight: 600; margin: 0 0 2px; }
+  .chart-head p { margin: 0; color: var(--text-secondary); font-size: 13.5px; max-width: 72ch; }
+  .card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 20px 14px; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart text { font-family: "IBM Plex Sans", system-ui, sans-serif; fill: var(--text-muted); }
+  svg.chart .value-label { fill: var(--text-secondary); font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  svg.chart .axis-line { stroke: var(--baseline); stroke-width: 1; }
+  svg.chart .gridline { stroke: var(--gridline); stroke-width: 1; }
+
+  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .panels { grid-template-columns: 1fr; } }
+  .panel-title { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; background: var(--tooltip-bg); color: var(--tooltip-fg);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; padding: 8px 10px;
+    border-radius: 6px; line-height: 1.5; opacity: 0; transform: translate(-50%, calc(-100% - 10px));
+    transition: opacity 0.08s ease; z-index: 10; white-space: nowrap;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip .t-title { font-weight: 600; margin-bottom: 2px; }
+
+  details.table-toggle { margin-top: 4px; }
+  details.table-toggle summary {
+    cursor: pointer; font-size: 12.5px; color: var(--text-secondary);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; user-select: none;
+  }
+  table.data-table { margin-top: 12px; width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.data-table th, table.data-table td {
+    text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums;
+  }
+  table.data-table th:first-child, table.data-table td:first-child { text-align: left; font-variant-numeric: normal; }
+  table.data-table th {
+    color: var(--text-muted); font-weight: 500; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+
+  .heatmap-wrap { overflow-x: auto; }
+  table.heatmap { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  table.heatmap th, table.heatmap td { padding: 10px 12px; text-align: center; font-variant-numeric: tabular-nums; }
+  table.heatmap th {
+    color: var(--text-muted); font-weight: 500; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; text-align: center;
+  }
+  table.heatmap th:first-child, table.heatmap td.rowhead { text-align: left; font-variant-numeric: normal; }
+  table.heatmap td.cell { border-radius: 6px; font-weight: 500; font-family: "IBM Plex Mono", ui-monospace, monospace; cursor: default; }
+
+  footer {
+    border-top: 1px solid var(--border); padding-top: 20px; font-size: 12.5px; color: var(--text-muted);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+</style>
+</head>
+<body>
+
+
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">Qdrant &middot; hybrid-comparisons eval harness</div>
+    <h1>Rescorer Trade-offs</h1>
+    <p class="dek">
+      Recall@20, MRR@20, nDCG@20, and throughput across 8 quantization configs
+      and 3 final-stage rescorers, benchmarked against 500 real MS&nbsp;MARCO
+      queries per run.
+    </p>
+    <div class="method">
+      <span>Prefetch: <b>dense (all-MiniLM-L6-v2) + sparse (Qdrant/bm25)</b>, RRF-fused</span>
+      <span>Rescorers: <b>colbert</b> (answerai-colbert-small-v1, server-side) &middot; <b>cross-encoder</b> (ms-marco-MiniLM-L-6-v2, local) &middot; <b>rrf</b> (no rescore)</span>
+    </div>
+  </header>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="label">Quantization spread</div>
+      <div class="value">0.6&nbsp;pt</div>
+      <div class="note">Widest recall@20 gap across all 8 quantized configs, under any rescorer &mdash; still noise-level. Quantization scheme is not where quality is won or lost.</div>
+    </div>
+    <div class="stat">
+      <div class="label">Cross-encoder vs colbert</div>
+      <div class="value c-ce">+0.7&nbsp;pt recall</div>
+      <div class="note">...for 148&times; lower throughput (0.41 vs 60.9 qps) and 26&times; higher p50 latency (2,488ms vs 94ms), at prefetch_limit=100.</div>
+    </div>
+    <div class="stat">
+      <div class="label">RRF vs colbert</div>
+      <div class="value c-rrf">4.2&times; faster</div>
+      <div class="note">...but &minus;6.5&nbsp;pt mrr@20 and &minus;5.3&nbsp;pt ndcg@20 &mdash; recall alone (&minus;1.4pt) understates how much ranking quality a rescore stage buys.</div>
+    </div>
+  </div>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>Quantization is flat; the rescorer column is not</h2>
+      <p>Recall@20 at prefetch_limit=100, hybrid prefetch. Read down a column: 8 quantization schemes, barely distinguishable. Read across a row: the real variation is which rescorer runs last.</p>
+    </div>
+    <div class="card">
+      <div class="heatmap-wrap">
+        <div id="heatmap"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>What each rescorer actually buys in ranking quality</h2>
+      <p>Averaged across all 8 configs, hybrid prefetch, prefetch_limit=100. Recall alone looks close; mrr and ndcg &mdash; which credit *where* the right answer lands &mdash; separate the three much more clearly.</p>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-colbert)"></span>colbert</span>
+        <span class="key"><span class="swatch" style="background:var(--series-ce)"></span>cross-encoder</span>
+        <span class="key"><span class="swatch" style="background:var(--series-rrf)"></span>rrf</span>
+      </div>
+      <div id="chartQuality"></div>
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div id="tableQuality"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>...and what it costs</h2>
+      <p>Throughput at concurrency=8, log scale &mdash; the gap is over 600&times; between the fastest and slowest rescorer, which a linear axis would flatten into invisibility.</p>
+    </div>
+    <div class="card">
+      <div id="chartThroughput"></div>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>Cross-encoder is the only one that gets more expensive with a wider net</h2>
+      <p>Recall (top) and throughput (bottom, log) as prefetch_limit widens, k=20, hybrid prefetch. Colbert and rrf rescore/fuse server-side at roughly fixed cost; the local cross-encoder reranks every extra candidate itself, so its latency scales directly with prefetch_limit.</p>
+    </div>
+    <div class="card">
+      <div class="panels" id="sensRecall"></div>
+      <div class="panels" id="sensThroughput" style="margin-top:18px"></div>
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div id="tableSens"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>Dropping dense prefetch: how much does colbert vs cross-encoder lose?</h2>
+      <p>Same two rescorers, sparse-only prefetch instead of hybrid (k=20, prefetch_limit=100). Both lose recall/mrr/ndcg when the dense branch is dropped &mdash; the question is whether the rescorer at the end can make up for a weaker candidate set, and neither fully does.</p>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-colbert)"></span>colbert</span>
+        <span class="key"><span class="swatch" style="background:var(--series-ce)"></span>cross-encoder</span>
+      </div>
+      <div class="panels" style="grid-template-columns: 1fr 1fr" id="modeCompare"></div>
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div id="tableModeCompare"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>Sparse-only prefetch_limit sensitivity, colbert vs cross-encoder</h2>
+      <p>Same reading as the hybrid version above, but with only the sparse branch feeding the rescorer. Cross-encoder still gets more expensive as prefetch_limit grows; colbert still doesn't.</p>
+    </div>
+    <div class="card">
+      <div class="panels" style="grid-template-columns: repeat(2, 1fr)" id="sensRecallSparse"></div>
+      <div class="panels" style="grid-template-columns: repeat(2, 1fr); margin-top:18px" id="sensThroughputSparse"></div>
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div id="tableSensSparse"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <div class="chart-head">
+      <h2>Does the dense/colbert datatype affect colbert rescoring itself?</h2>
+      <p>Colbert only, all 8 configs, k=20 prefetch_limit=100. Recall barely moves (already shown above) &mdash; mrr and ndcg tell a different story: <b>turbo4</b> (both plain and with tq1 quantization on top) sits about 1&ndash;1.5&nbsp;pt below float32/float16/int8 in both prefetch modes, roughly 1&ndash;2% relative. The right document still lands in the top-k almost as often; turbo4's lower precision costs it a bit of fine-grained ranking order, not retrieval.</p>
+      <p>Worth being precise about what turbo4 <i>is</i> here: unlike the binary/scalar/product configs, which keep a full-precision copy of the vectors alongside a quantized one purely for candidate search, turbo4 is native storage &mdash; every colbert token vector lives at 4 bits per dimension, full stop, no float32 copy sitting next to it. That's an 8&times; reduction in per-vector storage for a ~1&ndash;2% hit on ranking quality and no measurable hit on recall.</p>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-hybrid)"></span>hybrid</span>
+        <span class="key"><span class="swatch" style="background:var(--series-sparseonly)"></span>sparse-only</span>
+      </div>
+      <div class="panel-title" style="margin-top:8px">mrr@20 by config</div>
+      <div id="dtypeMrr"></div>
+      <div class="panel-title" style="margin-top:14px">ndcg@20 by config</div>
+      <div id="dtypeNdcg"></div>
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div id="tableDtype"></div>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <span>500 sampled queries, seed 42, warmup 10. test_uint8_scalar excluded throughout: a scoring bug when stacking uint8 base dtype with int8 scalar quantization, not a genuine quality finding.</span>
+    <span>rrf has no sparse-only variant (rank fusion needs &ge;2 sources); cross-encoder cost is measured single-threaded per query, local to the eval-harness host, not the Qdrant cluster.</span>
+    <span>test_binary excluded from every sparse-only + cross-encoder number: that specific collection's results for that one combination were internally inconsistent with the other 7 configs (which are all byte-identical, as expected since sparse vectors are never quantized) &mdash; a leftover data-integrity issue from that collection being re-used across an earlier interrupted run, not a real effect. Its hybrid+cross-encoder and sparse-only+colbert numbers are unaffected and included as normal.</span>
+  </footer>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+  const NS = "http://www.w3.org/2000/svg";
+  const tooltip = document.getElementById("tooltip");
+
+  function showTooltip(evt, titleHtml, rowsHtml) {
+    tooltip.innerHTML = '<div class="t-title">' + titleHtml + '</div>' + rowsHtml;
+    tooltip.classList.add("visible");
+    moveTooltip(evt);
+  }
+  function moveTooltip(evt) {
+    tooltip.style.left = evt.clientX + "px";
+    tooltip.style.top = evt.clientY + "px";
+  }
+  function hideTooltip() { tooltip.classList.remove("visible"); }
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // ---------- Data ----------
+  const heatmapData = [
+    {config: "no-quant (f32)",    colbert: 0.968, ce: 0.974, rrf: 0.952},
+    {config: "no-quant (f16)",    colbert: 0.968, ce: 0.974, rrf: 0.952},
+    {config: "no-quant (turbo4)", colbert: 0.966, ce: 0.974, rrf: 0.954},
+    {config: "scalar int8",       colbert: 0.970, ce: 0.974, rrf: 0.952},
+    {config: "product x16",       colbert: 0.966, ce: 0.976, rrf: 0.956},
+    {config: "binary (f32)",      colbert: 0.966, ce: 0.974, rrf: 0.952},
+    {config: "binary (f16)",      colbert: 0.968, ce: 0.974, rrf: 0.952},
+    {config: "turbo4 tq1",        colbert: 0.964, ce: 0.972, rrf: 0.954},
+  ];
+
+  const qualityData = {
+    colbert:       {recall: 0.9670, mrr: 0.7099, ndcg: 0.7721, qps: 60.932, p50: 94.1},
+    "cross-encoder": {recall: 0.9740, mrr: 0.7173, ndcg: 0.7792, qps: 0.411, p50: 2487.7},
+    rrf:           {recall: 0.9530, mrr: 0.6451, ndcg: 0.7188, qps: 256.886, p50: 32.9},
+  };
+
+  const sensData = {
+    colbert: [
+      {pf: 25, recall: 0.9595, qps: 61.796},
+      {pf: 50, recall: 0.9682, qps: 62.094},
+      {pf: 100, recall: 0.9670, qps: 60.932},
+    ],
+    "cross-encoder": [
+      {pf: 25, recall: 0.9597, qps: 1.879},
+      {pf: 50, recall: 0.9685, qps: 0.834},
+      {pf: 100, recall: 0.9740, qps: 0.411},
+    ],
+    rrf: [
+      {pf: 25, recall: 0.9547, qps: 257.664},
+      {pf: 50, recall: 0.9540, qps: 252.516},
+      {pf: 100, recall: 0.9530, qps: 256.886},
+    ],
+  };
+  const rescorerLabel = {colbert: "colbert", "cross-encoder": "cross-encoder", rrf: "rrf"};
+  const rescorerColorVar = {colbert: "--series-colbert", "cross-encoder": "--series-ce", rrf: "--series-rrf"};
+
+  // colbert vs cross-encoder, hybrid vs sparse-only, k=20 pf=100
+  // (cross-encoder sparse-only excludes test_binary -- see footnote)
+  const modeCompareData = {
+    hybrid: {
+      colbert:       {recall: 0.9670, mrr: 0.7099, ndcg: 0.7721},
+      "cross-encoder": {recall: 0.9740, mrr: 0.7173, ndcg: 0.7792},
+    },
+    sparseonly: {
+      colbert:       {recall: 0.9265, mrr: 0.6990, ndcg: 0.7544},
+      "cross-encoder": {recall: 0.9300, mrr: 0.7010, ndcg: 0.7569},
+    },
+  };
+  const modeLabel = {hybrid: "hybrid prefetch", sparseonly: "sparse-only prefetch"};
+
+  // sparse-only prefetch_limit sensitivity, colbert vs cross-encoder, k=20
+  // (cross-encoder excludes test_binary -- see footnote)
+  const sensDataSparse = {
+    colbert: [
+      {pf: 25, recall: 0.8820, qps: 69.290},
+      {pf: 50, recall: 0.9073, qps: 68.669},
+      {pf: 100, recall: 0.9265, qps: 68.261},
+    ],
+    "cross-encoder": [
+      {pf: 25, recall: 0.8820, qps: 1.903},
+      {pf: 50, recall: 0.9080, qps: 0.824},
+      {pf: 100, recall: 0.9300, qps: 0.421},
+    ],
+  };
+
+  // colbert only, every quantization config, k=20 pf=100, hybrid vs sparse-only
+  const dtypeData = [
+    {config: "no-quant (f32)",    hybrid: {mrr: 0.7151, ndcg: 0.7763}, sparseonly: {mrr: 0.7006, ndcg: 0.7558}},
+    {config: "no-quant (f16)",    hybrid: {mrr: 0.7148, ndcg: 0.7760}, sparseonly: {mrr: 0.6995, ndcg: 0.7550}},
+    {config: "no-quant (turbo4)", hybrid: {mrr: 0.7056, ndcg: 0.7688}, sparseonly: {mrr: 0.6925, ndcg: 0.7491}},
+    {config: "scalar int8",       hybrid: {mrr: 0.7097, ndcg: 0.7727}, sparseonly: {mrr: 0.7069, ndcg: 0.7607}},
+    {config: "product x16",      hybrid: {mrr: 0.6987, ndcg: 0.7630}, sparseonly: {mrr: 0.7000, ndcg: 0.7549}},
+    {config: "binary (f32)",     hybrid: {mrr: 0.7150, ndcg: 0.7758}, sparseonly: {mrr: 0.7003, ndcg: 0.7552}},
+    {config: "binary (f16)",     hybrid: {mrr: 0.7152, ndcg: 0.7763}, sparseonly: {mrr: 0.6995, ndcg: 0.7551}},
+    {config: "turbo4 tq1",       hybrid: {mrr: 0.7050, ndcg: 0.7679}, sparseonly: {mrr: 0.6926, ndcg: 0.7492}},
+  ];
+  const isTurbo4 = c => c.startsWith("no-quant (turbo4)") || c.startsWith("turbo4");
+
+  // ---------- Heatmap ----------
+  function seqColor(v, min, max) {
+    const steps = [
+      {t: 0.0, c: cssVar("--seq-100")},
+      {t: 0.35, c: cssVar("--seq-250")},
+      {t: 0.65, c: cssVar("--seq-450")},
+      {t: 0.85, c: cssVar("--seq-600")},
+      {t: 1.0, c: cssVar("--seq-700")},
+    ];
+    const t = max > min ? (v - min) / (max - min) : 0.5;
+    for (let i = 0; i < steps.length - 1; i++) {
+      if (t >= steps[i].t && t <= steps[i + 1].t) return steps[i].t < 0.65 ? steps[i].c : steps[i + 1].c;
+    }
+    return steps[steps.length - 1].c;
+  }
+  function textOnColor(v, min, max) {
+    const t = max > min ? (v - min) / (max - min) : 0.5;
+    return t > 0.55 ? "#ffffff" : cssVar("--text-primary");
+  }
+
+  function renderHeatmap() {
+    const allVals = heatmapData.flatMap(d => [d.colbert, d.ce, d.rrf]);
+    const min = Math.min(...allVals), max = Math.max(...allVals);
+    let html = '<table class="heatmap"><thead><tr><th>Config</th><th>colbert</th><th>cross-encoder</th><th>rrf</th></tr></thead><tbody>';
+    heatmapData.forEach(d => {
+      html += "<tr><td class=\"rowhead\">" + d.config + "</td>";
+      ["colbert", "ce", "rrf"].forEach(key => {
+        const v = d[key];
+        const bg = seqColor(v, min, max);
+        const fg = textOnColor(v, min, max);
+        html += `<td class="cell" style="background:${bg};color:${fg}">${(v * 100).toFixed(1)}</td>`;
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    document.getElementById("heatmap").innerHTML = html;
+  }
+
+  // ---------- Quality bar chart (recall/mrr/ndcg by rescorer) ----------
+  function renderQualityChart() {
+    const w = 760, h = 320;
+    const padL = 44, padR = 12, padT = 16, padB = 34;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const yMin = 0, yMax = 1;
+    const yScale = v => padT + plotH * (1 - (v - yMin) / (yMax - yMin));
+
+    const svg = el("svg", {class: "chart", viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": "Grouped bar chart of recall, mrr and ndcg at k=20 by rescorer"});
+
+    [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+      const y = yScale(v);
+      el("line", {class: "gridline", x1: padL, x2: w - padR, y1: y, y2: y}, svg);
+      el("text", {x: padL - 8, y: y + 4, "text-anchor": "end", "font-size": 11}, svg).textContent = v.toFixed(2);
+    });
+    el("line", {class: "axis-line", x1: padL, x2: w - padR, y1: yScale(0), y2: yScale(0)}, svg);
+
+    const rescorers = ["colbert", "cross-encoder", "rrf"];
+    const metrics = ["recall", "mrr", "ndcg"];
+    const groupW = plotW / rescorers.length;
+    const barW = 16, barGap = 3;
+
+    rescorers.forEach((rescorer, gi) => {
+      const gx = padL + groupW * gi + groupW / 2;
+      metrics.forEach((metric, mi) => {
+        const offset = (mi - 1) * (barW + barGap);
+        const v = qualityData[rescorer][metric];
+        const x = gx + offset - barW / 2;
+        const yTop = yScale(v);
+        const barH = yScale(0) - yTop;
+        const rect = el("rect", {
+          x: x, y: yTop, width: barW, height: Math.max(barH, 1), rx: 4, ry: 4,
+          fill: cssVar(rescorerColorVar[rescorer]), opacity: metric === "recall" ? 1 : (metric === "mrr" ? 0.72 : 0.46),
+        }, svg);
+        rect.addEventListener("mousemove", (e) => {
+          showTooltip(e, rescorerLabel[rescorer], `<div>${metric}@20: <b>${(v * 100).toFixed(2)}%</b></div>`);
+        });
+        rect.addEventListener("mouseleave", hideTooltip);
+        if (metric === "recall") {
+          el("text", {class: "value-label", x: gx + offset, y: yTop - 6, "text-anchor": "middle", "font-size": 10}, svg)
+            .textContent = (v * 100).toFixed(1);
+        }
+      });
+      el("text", {x: gx, y: h - padB + 18, "text-anchor": "middle", "font-size": 11.5}, svg).textContent = rescorerLabel[rescorer];
+    });
+
+    document.getElementById("chartQuality").appendChild(svg);
+
+    // legend note for the opacity-encoded metric within each color
+    const note = document.createElement("div");
+    note.style.cssText = "display:flex;gap:16px;font-size:11.5px;color:var(--text-muted);margin-top:6px;font-family:'IBM Plex Mono',monospace";
+    note.innerHTML = '<span style="opacity:1">&#9632; recall</span><span style="opacity:0.72">&#9632; mrr</span><span style="opacity:0.46">&#9632; ndcg</span>';
+    document.getElementById("chartQuality").appendChild(note);
+  }
+
+  function renderQualityTable() {
+    const rescorers = ["colbert", "cross-encoder", "rrf"];
+    const rows = rescorers.map(r => {
+      const d = qualityData[r];
+      return `<tr><td>${rescorerLabel[r]}</td><td>${(d.recall*100).toFixed(2)}%</td><td>${(d.mrr*100).toFixed(2)}%</td><td>${(d.ndcg*100).toFixed(2)}%</td><td>${d.qps.toFixed(2)}</td><td>${d.p50.toFixed(1)}</td></tr>`;
+    }).join("");
+    document.getElementById("tableQuality").innerHTML =
+      '<table class="data-table"><thead><tr><th>Rescorer</th><th>recall@20</th><th>mrr@20</th><th>ndcg@20</th><th>qps</th><th>p50 ms</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  // ---------- Throughput bar chart (log scale) ----------
+  function renderThroughputChart() {
+    const w = 760, h = 220;
+    const padL = 54, padR = 12, padT = 16, padB = 34;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const logMin = Math.log10(0.2), logMax = Math.log10(400);
+    const yScale = v => padT + plotH * (1 - (Math.log10(v) - logMin) / (logMax - logMin));
+
+    const svg = el("svg", {class: "chart", viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": "Bar chart of throughput in queries per second by rescorer, log scale"});
+
+    [0.5, 1, 5, 10, 50, 100, 300].forEach(v => {
+      const y = yScale(v);
+      el("line", {class: "gridline", x1: padL, x2: w - padR, y1: y, y2: y}, svg);
+      el("text", {x: padL - 8, y: y + 4, "text-anchor": "end", "font-size": 11}, svg).textContent = v;
+    });
+
+    const rescorers = ["colbert", "cross-encoder", "rrf"];
+    const groupW = plotW / rescorers.length;
+    const barW = 40;
+
+    rescorers.forEach((rescorer, gi) => {
+      const gx = padL + groupW * gi + groupW / 2;
+      const v = qualityData[rescorer].qps;
+      const yTop = yScale(v);
+      const yBase = yScale(0.2);
+      const rect = el("rect", {
+        x: gx - barW / 2, y: yTop, width: barW, height: Math.max(yBase - yTop, 1),
+        rx: 4, ry: 4, fill: cssVar(rescorerColorVar[rescorer]),
+      }, svg);
+      rect.addEventListener("mousemove", (e) => {
+        showTooltip(e, rescorerLabel[rescorer], `<div>throughput: <b>${v.toFixed(2)} qps</b></div><div>p50 latency: <b>${qualityData[rescorer].p50.toFixed(1)}ms</b></div>`);
+      });
+      rect.addEventListener("mouseleave", hideTooltip);
+      el("text", {class: "value-label", x: gx, y: yTop - 6, "text-anchor": "middle", "font-size": 11}, svg)
+        .textContent = v.toFixed(2) + " qps";
+      el("text", {x: gx, y: h - padB + 18, "text-anchor": "middle", "font-size": 11.5}, svg).textContent = rescorerLabel[rescorer];
+    });
+
+    document.getElementById("chartThroughput").appendChild(svg);
+  }
+
+  // ---------- Prefetch sensitivity small multiples ----------
+  function renderSensPanel(containerId, rescorer, metric, yDomain, isLog, unit, dataSource) {
+    const w = 280, h = 190;
+    const padL = 40, padR = 10, padT = 10, padB = 26;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const series = (dataSource || sensData)[rescorer];
+    const xs = series.map(d => d.pf);
+    const xScale = pf => padL + plotW * (xs.indexOf(pf) / (xs.length - 1));
+    const [dMin, dMax] = yDomain;
+    const yScale = isLog
+      ? v => padT + plotH * (1 - (Math.log10(v) - Math.log10(dMin)) / (Math.log10(dMax) - Math.log10(dMin)))
+      : v => padT + plotH * (1 - (v - dMin) / (dMax - dMin));
+
+    const svg = el("svg", {class: "chart", viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": metric + " versus prefetch limit for " + rescorer});
+
+    const ticks = isLog ? [1, 10, 100] : [dMin, (dMin + dMax) / 2, dMax];
+    ticks.forEach(v => {
+      const y = yScale(v);
+      el("line", {class: "gridline", x1: padL, x2: w - padR, y1: y, y2: y}, svg);
+      el("text", {x: padL - 6, y: y + 3.5, "text-anchor": "end", "font-size": 9.5}, svg)
+        .textContent = isLog ? v : v.toFixed(2);
+    });
+    xs.forEach(pf => {
+      el("text", {x: xScale(pf), y: h - padB + 16, "text-anchor": "middle", "font-size": 9.5}, svg).textContent = "pf=" + pf;
+    });
+
+    const pts = series.map(d => ({x: xScale(d.pf), y: yScale(d[metric]), pf: d.pf, v: d[metric]}));
+    const path = "M " + pts.map(p => p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" L ");
+    el("path", {d: path, fill: "none", stroke: cssVar(rescorerColorVar[rescorer]), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"}, svg);
+    pts.forEach(p => {
+      const ring = el("circle", {cx: p.x, cy: p.y, r: 5.5, fill: cssVar("--surface-card")}, svg);
+      const dot = el("circle", {cx: p.x, cy: p.y, r: 3.5, fill: cssVar(rescorerColorVar[rescorer]), style: "cursor:pointer"}, svg);
+      [ring, dot].forEach(node => {
+        node.addEventListener("mousemove", (e) => {
+          showTooltip(e, rescorerLabel[rescorer] + " &middot; pf=" + p.pf, `<div>${metric}: <b>${unit === "%" ? (p.v * 100).toFixed(2) + "%" : p.v.toFixed(2) + " qps"}</b></div>`);
+        });
+        node.addEventListener("mouseleave", hideTooltip);
+      });
+    });
+    const last = pts[pts.length - 1];
+    el("text", {class: "value-label", x: last.x + 5, y: last.y + 3.5, "font-size": 10}, svg)
+      .textContent = unit === "%" ? (last.v * 100).toFixed(1) : last.v.toFixed(2);
+
+    document.getElementById(containerId).appendChild(svg);
+  }
+
+  function renderSensitivity() {
+    const recallHost = document.getElementById("sensRecall");
+    const qpsHost = document.getElementById("sensThroughput");
+    ["colbert", "cross-encoder", "rrf"].forEach(rescorer => {
+      const rWrap = document.createElement("div");
+      rWrap.innerHTML = `<div class="panel-title">${rescorerLabel[rescorer]} &middot; recall@20</div><div id="r-${rescorer}"></div>`;
+      recallHost.appendChild(rWrap);
+      const qWrap = document.createElement("div");
+      qWrap.innerHTML = `<div class="panel-title">${rescorerLabel[rescorer]} &middot; qps (log)</div><div id="q-${rescorer}"></div>`;
+      qpsHost.appendChild(qWrap);
+    });
+    renderSensPanel("r-colbert", "colbert", "recall", [0.94, 0.98], false, "%");
+    renderSensPanel("r-cross-encoder", "cross-encoder", "recall", [0.94, 0.98], false, "%");
+    renderSensPanel("r-rrf", "rrf", "recall", [0.94, 0.98], false, "%");
+    renderSensPanel("q-colbert", "colbert", "qps", [0.3, 300], true, "qps");
+    renderSensPanel("q-cross-encoder", "cross-encoder", "qps", [0.3, 300], true, "qps");
+    renderSensPanel("q-rrf", "rrf", "qps", [0.3, 300], true, "qps");
+  }
+
+  function renderSensTable() {
+    const rows = [];
+    ["colbert", "cross-encoder", "rrf"].forEach(rescorer => {
+      sensData[rescorer].forEach(d => {
+        rows.push(`<tr><td>${rescorerLabel[rescorer]}</td><td>${d.pf}</td><td>${(d.recall*100).toFixed(2)}%</td><td>${d.qps.toFixed(2)}</td></tr>`);
+      });
+    });
+    document.getElementById("tableSens").innerHTML =
+      '<table class="data-table"><thead><tr><th>Rescorer</th><th>prefetch_limit</th><th>recall@20</th><th>qps</th></tr></thead><tbody>' + rows.join("") + '</tbody></table>';
+  }
+
+  // ---------- Mode compare: colbert vs cross-encoder, hybrid vs sparse-only ----------
+  function renderModeComparePanel(containerId, mode) {
+    const w = 340, h = 260;
+    const padL = 40, padR = 10, padT = 14, padB = 32;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const yMin = 0, yMax = 1;
+    const yScale = v => padT + plotH * (1 - (v - yMin) / (yMax - yMin));
+
+    const svg = el("svg", {class: "chart", viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": "Recall, mrr and ndcg at k=20 by rescorer, " + modeLabel[mode]});
+
+    [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+      const y = yScale(v);
+      el("line", {class: "gridline", x1: padL, x2: w - padR, y1: y, y2: y}, svg);
+      el("text", {x: padL - 8, y: y + 4, "text-anchor": "end", "font-size": 10.5}, svg).textContent = v.toFixed(2);
+    });
+    el("line", {class: "axis-line", x1: padL, x2: w - padR, y1: yScale(0), y2: yScale(0)}, svg);
+
+    const rescorers = ["colbert", "cross-encoder"];
+    const metrics = ["recall", "mrr", "ndcg"];
+    const groupW = plotW / rescorers.length;
+    const barW = 18, barGap = 3;
+
+    rescorers.forEach((rescorer, gi) => {
+      const gx = padL + groupW * gi + groupW / 2;
+      metrics.forEach((metric, mi) => {
+        const offset = (mi - 1) * (barW + barGap);
+        const v = modeCompareData[mode][rescorer][metric];
+        const x = gx + offset - barW / 2;
+        const yTop = yScale(v);
+        const barH = yScale(0) - yTop;
+        const rect = el("rect", {
+          x: x, y: yTop, width: barW, height: Math.max(barH, 1), rx: 4, ry: 4,
+          fill: cssVar(rescorerColorVar[rescorer]), opacity: metric === "recall" ? 1 : (metric === "mrr" ? 0.72 : 0.46),
+        }, svg);
+        rect.addEventListener("mousemove", (e) => {
+          showTooltip(e, rescorerLabel[rescorer] + " &middot; " + modeLabel[mode], `<div>${metric}@20: <b>${(v * 100).toFixed(2)}%</b></div>`);
+        });
+        rect.addEventListener("mouseleave", hideTooltip);
+        if (metric === "recall") {
+          el("text", {class: "value-label", x: gx + offset, y: yTop - 6, "text-anchor": "middle", "font-size": 10}, svg)
+            .textContent = (v * 100).toFixed(1);
+        }
+      });
+      el("text", {x: gx, y: h - padB + 18, "text-anchor": "middle", "font-size": 11}, svg).textContent = rescorerLabel[rescorer];
+    });
+
+    document.getElementById(containerId).appendChild(svg);
+  }
+
+  function renderModeCompare() {
+    const host = document.getElementById("modeCompare");
+    ["hybrid", "sparseonly"].forEach(mode => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `<div class="panel-title">${modeLabel[mode]}</div><div id="mc-${mode}"></div>`;
+      host.appendChild(wrap);
+    });
+    renderModeComparePanel("mc-hybrid", "hybrid");
+    renderModeComparePanel("mc-sparseonly", "sparseonly");
+
+    const note = document.createElement("div");
+    note.style.cssText = "display:flex;gap:16px;font-size:11.5px;color:var(--text-muted);margin-top:2px;font-family:'IBM Plex Mono',monospace";
+    note.innerHTML = '<span style="opacity:1">&#9632; recall</span><span style="opacity:0.72">&#9632; mrr</span><span style="opacity:0.46">&#9632; ndcg</span>';
+    host.parentElement.insertBefore(note, host.nextSibling);
+  }
+
+  function renderModeCompareTable() {
+    const rows = [];
+    ["hybrid", "sparseonly"].forEach(mode => {
+      ["colbert", "cross-encoder"].forEach(rescorer => {
+        const d = modeCompareData[mode][rescorer];
+        rows.push(`<tr><td>${modeLabel[mode]}</td><td>${rescorerLabel[rescorer]}</td><td>${(d.recall*100).toFixed(2)}%</td><td>${(d.mrr*100).toFixed(2)}%</td><td>${(d.ndcg*100).toFixed(2)}%</td></tr>`);
+      });
+    });
+    document.getElementById("tableModeCompare").innerHTML =
+      '<table class="data-table"><thead><tr><th>Mode</th><th>Rescorer</th><th>recall@20</th><th>mrr@20</th><th>ndcg@20</th></tr></thead><tbody>' + rows.join("") + '</tbody></table>';
+  }
+
+  // ---------- Sparse-only prefetch sensitivity (colbert / cross-encoder only) ----------
+  function renderSparseSensitivity() {
+    const recallHost = document.getElementById("sensRecallSparse");
+    const qpsHost = document.getElementById("sensThroughputSparse");
+    ["colbert", "cross-encoder"].forEach(rescorer => {
+      const rWrap = document.createElement("div");
+      rWrap.innerHTML = `<div class="panel-title">${rescorerLabel[rescorer]} &middot; recall@20</div><div id="rs-${rescorer}"></div>`;
+      recallHost.appendChild(rWrap);
+      const qWrap = document.createElement("div");
+      qWrap.innerHTML = `<div class="panel-title">${rescorerLabel[rescorer]} &middot; qps (log)</div><div id="qs-${rescorer}"></div>`;
+      qpsHost.appendChild(qWrap);
+    });
+    renderSensPanel("rs-colbert", "colbert", "recall", [0.86, 0.94], false, "%", sensDataSparse);
+    renderSensPanel("rs-cross-encoder", "cross-encoder", "recall", [0.86, 0.94], false, "%", sensDataSparse);
+    renderSensPanel("qs-colbert", "colbert", "qps", [0.3, 300], true, "qps", sensDataSparse);
+    renderSensPanel("qs-cross-encoder", "cross-encoder", "qps", [0.3, 300], true, "qps", sensDataSparse);
+  }
+
+  function renderSparseSensTable() {
+    const rows = [];
+    ["colbert", "cross-encoder"].forEach(rescorer => {
+      sensDataSparse[rescorer].forEach(d => {
+        rows.push(`<tr><td>${rescorerLabel[rescorer]}</td><td>${d.pf}</td><td>${(d.recall*100).toFixed(2)}%</td><td>${d.qps.toFixed(2)}</td></tr>`);
+      });
+    });
+    document.getElementById("tableSensSparse").innerHTML =
+      '<table class="data-table"><thead><tr><th>Rescorer</th><th>prefetch_limit</th><th>recall@20</th><th>qps</th></tr></thead><tbody>' + rows.join("") + '</tbody></table>';
+  }
+
+  // ---------- Datatype effect on colbert rescoring (per config, hybrid vs sparse-only) ----------
+  function renderDtypeChart(containerId, metric, yDomain) {
+    const w = 900, h = 260;
+    const padL = 44, padR = 12, padT = 16, padB = 46;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const [yMin, yMax] = yDomain;
+    const yScale = v => padT + plotH * (1 - (v - yMin) / (yMax - yMin));
+
+    const svg = el("svg", {class: "chart", viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": metric + " at k=20 by quantization config, hybrid vs sparse-only, colbert rescorer"});
+
+    const ticks = [yMin, yMin + (yMax - yMin) / 3, yMin + (yMax - yMin) * 2 / 3, yMax];
+    ticks.forEach(v => {
+      const y = yScale(v);
+      el("line", {class: "gridline", x1: padL, x2: w - padR, y1: y, y2: y}, svg);
+      el("text", {x: padL - 8, y: y + 4, "text-anchor": "end", "font-size": 11}, svg).textContent = v.toFixed(3);
+    });
+
+    const groupW = plotW / dtypeData.length;
+    const barW = 15, barGap = 3;
+
+    dtypeData.forEach((d, i) => {
+      const gx = padL + groupW * i + groupW / 2;
+      const turbo = isTurbo4(d.config);
+      [
+        {key: "hybrid", color: cssVar("--series-hybrid"), dx: -barW / 2 - barGap / 2},
+        {key: "sparseonly", color: cssVar("--series-sparseonly"), dx: barW / 2 + barGap / 2},
+      ].forEach(mode => {
+        const v = d[mode.key][metric];
+        const x = gx + mode.dx - barW / 2;
+        const yTop = yScale(v);
+        const barH = yScale(yMin) - yTop;
+        const rect = el("rect", {
+          x: x, y: yTop, width: barW, height: Math.max(barH, 1), rx: 4, ry: 4,
+          fill: mode.color, stroke: turbo ? cssVar("--text-primary") : "none", "stroke-width": turbo ? 1.5 : 0,
+        }, svg);
+        rect.addEventListener("mousemove", (e) => {
+          showTooltip(e, d.config + " &middot; " + modeLabel[mode.key], `<div>${metric}@20: <b>${v.toFixed(4)}</b></div>`);
+        });
+        rect.addEventListener("mouseleave", hideTooltip);
+      });
+      el("text", {
+        x: gx, y: h - padB + 18, "text-anchor": "middle", "font-size": 10.5,
+        fill: turbo ? cssVar("--text-primary") : cssVar("--text-muted"),
+        "font-weight": turbo ? 600 : 400,
+      }, svg).textContent = d.config;
+    });
+
+    document.getElementById(containerId).appendChild(svg);
+  }
+
+  function renderDtypeTable() {
+    const rows = dtypeData.map(d =>
+      `<tr><td>${d.config}${isTurbo4(d.config) ? " *" : ""}</td><td>${d.hybrid.mrr.toFixed(4)}</td><td>${d.hybrid.ndcg.toFixed(4)}</td><td>${d.sparseonly.mrr.toFixed(4)}</td><td>${d.sparseonly.ndcg.toFixed(4)}</td></tr>`
+    ).join("");
+    document.getElementById("tableDtype").innerHTML =
+      '<table class="data-table"><thead><tr><th>Config</th><th>hybrid mrr@20</th><th>hybrid ndcg@20</th><th>sparse-only mrr@20</th><th>sparse-only ndcg@20</th></tr></thead><tbody>' +
+      rows + '</tbody></table><div style="font-size:11.5px;color:var(--text-muted);margin-top:8px">* turbo4 datatype</div>';
+  }
+
+  renderHeatmap();
+  renderQualityChart();
+  renderQualityTable();
+  renderThroughputChart();
+  renderSensitivity();
+  renderSensTable();
+  renderModeCompare();
+  renderModeCompareTable();
+  renderSparseSensitivity();
+  renderSparseSensTable();
+  renderDtypeChart("dtypeMrr", "mrr", [0.68, 0.72]);
+  renderDtypeChart("dtypeNdcg", "ndcg", [0.74, 0.78]);
+  renderDtypeTable();
+
+  window.addEventListener("mousemove", moveTooltip);
+</script>
+
+</body>
+</html>
