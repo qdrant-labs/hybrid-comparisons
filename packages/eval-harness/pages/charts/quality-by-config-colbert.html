@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recall, MRR, nDCG by quantization config (colbert)</title>
+<style>
+  :root {
+    --wash:      #e2e7f5;
+    --card:      #ffffff;
+    --n30:       #28324d;
+    --n50:       #576280;
+    --n70:       #8f98b2;
+    --n90:       #d4d9e6;
+    --grid:      #e1e5f0;
+    --blue30:    #0040a1;
+    --blue50:    #2f6ff0;
+    --blue70:    #89a9ff;
+    --turbo-ring: #28324d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px;
+    background: var(--wash);
+    font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  .frame {
+    max-width: 1180px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 44px 48px 36px;
+  }
+  .legend {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .legend-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .swatch {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .swatch.ring {
+    box-sizing: border-box;
+    border: 2px solid var(--turbo-ring);
+    background: var(--blue50);
+  }
+  .legend-label {
+    font-size: 14px;
+    color: var(--n30);
+  }
+  svg text { font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="legend">
+    <span class="legend-group"><span class="swatch" style="background:var(--blue30)"></span><span class="legend-label">recall@20</span></span>
+    <span class="legend-group"><span class="swatch" style="background:var(--blue50)"></span><span class="legend-label">mrr@20</span></span>
+    <span class="legend-group"><span class="swatch" style="background:var(--blue70)"></span><span class="legend-label">ndcg@20</span></span>
+  </div>
+
+  <svg viewBox="-60 0 1240 500" width="100%" height="auto" style="overflow:visible; display:block; margin-top:22px">
+
+    <!-- gridlines + y ticks -->
+    <line x1="76" x2="1156" y1="400.00" y2="400.00" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="76" x2="1156" y1="306.00" y2="306.00" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="76" x2="1156" y1="212.00" y2="212.00" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="76" x2="1156" y1="118.00" y2="118.00" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="76" x2="1156" y1="24.00"  y2="24.00"  stroke="var(--grid)" stroke-width="1"/>
+    <text x="68" y="404" text-anchor="end" font-size="14" fill="var(--n70)">0.00</text>
+    <text x="68" y="310" text-anchor="end" font-size="14" fill="var(--n70)">0.25</text>
+    <text x="68" y="216" text-anchor="end" font-size="14" fill="var(--n70)">0.50</text>
+    <text x="68" y="122" text-anchor="end" font-size="14" fill="var(--n70)">0.75</text>
+    <text x="68" y="28"  text-anchor="end" font-size="14" fill="var(--n70)">1.00</text>
+    <line x1="76" x2="1156" y1="400.00" y2="400.00" stroke="var(--n90)" stroke-width="1.5"/>
+
+    <!-- y axis title -->
+    <text x="-40" y="212" text-anchor="middle" font-size="14.5" fill="var(--n50)"
+      transform="rotate(-90 -40 212)">score (0&ndash;1 scale)</text>
+
+    <!-- x axis title -->
+    <text x="616" y="480" text-anchor="middle" font-size="14.5" fill="var(--n50)">quantization config, colbert rescorer (hybrid prefetch, k=20, pf=100)</text>
+
+    <!-- no-quant (f32) -->
+    <rect x="105.50" y="36.03"  width="20" height="363.97" rx="4" fill="var(--blue30)"/>
+    <text x="115.50" y="26.03" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.8</text>
+    <rect x="133.50" y="131.12" width="20" height="268.88" rx="4" fill="var(--blue50)"/>
+    <text x="143.50" y="121.12" text-anchor="middle" font-size="12.5" fill="var(--n30)">71.5</text>
+    <rect x="161.50" y="108.11" width="20" height="291.89" rx="4" fill="var(--blue70)"/>
+    <text x="171.50" y="98.11" text-anchor="middle" font-size="12.5" fill="var(--n30)">77.6</text>
+    <text x="143.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="143.50" dy="16">(f32)</tspan></text>
+
+    <!-- no-quant (f16) -->
+    <rect x="240.50" y="36.03"  width="20" height="363.97" rx="4" fill="var(--blue30)"/>
+    <text x="250.50" y="26.03" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.8</text>
+    <rect x="268.50" y="131.24" width="20" height="268.76" rx="4" fill="var(--blue50)"/>
+    <text x="278.50" y="121.24" text-anchor="middle" font-size="12.5" fill="var(--n30)">71.5</text>
+    <rect x="296.50" y="108.22" width="20" height="291.78" rx="4" fill="var(--blue70)"/>
+    <text x="306.50" y="98.22" text-anchor="middle" font-size="12.5" fill="var(--n30)">77.6</text>
+    <text x="278.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="278.50" dy="16">(f16)</tspan></text>
+
+    <!-- no-quant (turbo4) — highlighted -->
+    <rect x="375.50" y="36.78"  width="20" height="363.22" rx="4" fill="var(--blue30)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="385.50" y="26.78" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.6</text>
+    <rect x="403.50" y="134.69" width="20" height="265.31" rx="4" fill="var(--blue50)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="413.50" y="124.69" text-anchor="middle" font-size="12.5" fill="var(--n30)">70.6</text>
+    <rect x="431.50" y="110.93" width="20" height="289.07" rx="4" fill="var(--blue70)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="441.50" y="100.93" text-anchor="middle" font-size="12.5" fill="var(--n30)">76.9</text>
+    <text x="413.50" y="424" text-anchor="middle" font-size="13" fill="var(--n30)" font-weight="600">no-quant<tspan x="413.50" dy="16">(turbo4)</tspan></text>
+
+    <!-- scalar int8 -->
+    <rect x="510.50" y="35.28"  width="20" height="364.72" rx="4" fill="var(--blue30)"/>
+    <text x="520.50" y="25.28" text-anchor="middle" font-size="12.5" fill="var(--n30)">97.0</text>
+    <rect x="538.50" y="133.15" width="20" height="266.85" rx="4" fill="var(--blue50)"/>
+    <text x="548.50" y="123.15" text-anchor="middle" font-size="12.5" fill="var(--n30)">71.0</text>
+    <rect x="566.50" y="109.46" width="20" height="290.54" rx="4" fill="var(--blue70)"/>
+    <text x="576.50" y="99.46" text-anchor="middle" font-size="12.5" fill="var(--n30)">77.3</text>
+    <text x="548.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">scalar<tspan x="548.50" dy="16">int8</tspan></text>
+
+    <!-- product x16 -->
+    <rect x="645.50" y="36.78"  width="20" height="363.22" rx="4" fill="var(--blue30)"/>
+    <text x="655.50" y="26.78" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.6</text>
+    <rect x="673.50" y="137.29" width="20" height="262.71" rx="4" fill="var(--blue50)"/>
+    <text x="683.50" y="127.29" text-anchor="middle" font-size="12.5" fill="var(--n30)">69.9</text>
+    <rect x="701.50" y="113.11" width="20" height="286.89" rx="4" fill="var(--blue70)"/>
+    <text x="711.50" y="103.11" text-anchor="middle" font-size="12.5" fill="var(--n30)">76.3</text>
+    <text x="683.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">product<tspan x="683.50" dy="16">x16</tspan></text>
+
+    <!-- binary (f32) -->
+    <rect x="780.50" y="36.78"  width="20" height="363.22" rx="4" fill="var(--blue30)"/>
+    <text x="790.50" y="26.78" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.6</text>
+    <rect x="808.50" y="131.16" width="20" height="268.84" rx="4" fill="var(--blue50)"/>
+    <text x="818.50" y="121.16" text-anchor="middle" font-size="12.5" fill="var(--n30)">71.5</text>
+    <rect x="836.50" y="108.30" width="20" height="291.70" rx="4" fill="var(--blue70)"/>
+    <text x="846.50" y="98.30" text-anchor="middle" font-size="12.5" fill="var(--n30)">77.6</text>
+    <text x="818.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="818.50" dy="16">(f32)</tspan></text>
+
+    <!-- binary (f16) -->
+    <rect x="915.50" y="36.03"  width="20" height="363.97" rx="4" fill="var(--blue30)"/>
+    <text x="925.50" y="26.03" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.8</text>
+    <rect x="943.50" y="131.08" width="20" height="268.92" rx="4" fill="var(--blue50)"/>
+    <text x="953.50" y="121.08" text-anchor="middle" font-size="12.5" fill="var(--n30)">71.5</text>
+    <rect x="971.50" y="108.11" width="20" height="291.89" rx="4" fill="var(--blue70)"/>
+    <text x="981.50" y="98.11" text-anchor="middle" font-size="12.5" fill="var(--n30)">77.6</text>
+    <text x="953.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="953.50" dy="16">(f16)</tspan></text>
+
+    <!-- turbo4 tq1 — highlighted -->
+    <rect x="1050.50" y="37.54"  width="20" height="362.46" rx="4" fill="var(--blue30)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="1060.50" y="27.54" text-anchor="middle" font-size="12.5" fill="var(--n30)">96.4</text>
+    <rect x="1078.50" y="134.92" width="20" height="265.08" rx="4" fill="var(--blue50)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="1088.50" y="124.92" text-anchor="middle" font-size="12.5" fill="var(--n30)">70.5</text>
+    <rect x="1106.50" y="111.27" width="20" height="288.73" rx="4" fill="var(--blue70)" stroke="var(--turbo-ring)" stroke-width="1.5"/>
+    <text x="1116.50" y="101.27" text-anchor="middle" font-size="12.5" fill="var(--n30)">76.8</text>
+    <text x="1088.50" y="424" text-anchor="middle" font-size="13" fill="var(--n30)" font-weight="600">turbo4<tspan x="1088.50" dy="16">tq1</tspan></text>
+
+  </svg>
+
+</div>
+</body>
+</html>

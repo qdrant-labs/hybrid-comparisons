@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_product_x16",
+  "config": "../qdrant-load/configs/dbpedia/config_product_x16.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": false,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.9,
+    "hit_rate@k": 0.9,
+    "mrr@k": 0.8431536259062574,
+    "ndcg@k": 0.8571506914312537
+  },
+  "latency": {
+    "mean_ms": 39.27352396549767,
+    "p50_ms": 38.839032989926636,
+    "p95_ms": 45.133053994504735,
+    "p99_ms": 50.49127800157294,
+    "min_ms": 31.622608003090136,
+    "max_ms": 62.41020798915997
+  },
+  "throughput_qps": 74.52991839972293
+}

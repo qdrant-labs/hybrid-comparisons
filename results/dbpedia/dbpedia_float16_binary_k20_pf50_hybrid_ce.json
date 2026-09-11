@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_float16_binary",
+  "config": "../qdrant-load/configs/dbpedia/config_float16_binary.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": true,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.954,
+    "hit_rate@k": 0.954,
+    "mrr@k": 0.8857595959595956,
+    "ndcg@k": 0.9025638239843611
+  },
+  "latency": {
+    "mean_ms": 1178.2256625084283,
+    "p50_ms": 1090.0974669930292,
+    "p95_ms": 3063.9321749986266,
+    "p99_ms": 5370.737752004061,
+    "min_ms": 185.74670499947388,
+    "max_ms": 6123.647107000579
+  },
+  "throughput_qps": 0.8644567972714948
+}

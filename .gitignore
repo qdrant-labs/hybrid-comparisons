@@ -7,3 +7,4 @@ __pycache__/
 embeddings/
 packages/model-converter/
 .env
+.claude/

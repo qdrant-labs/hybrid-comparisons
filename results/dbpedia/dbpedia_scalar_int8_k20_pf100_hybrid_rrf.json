@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_scalar_int8",
+  "config": "../qdrant-load/configs/dbpedia/config_scalar_int8.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": true,
+  "rescorer": "rrf",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.95,
+    "hit_rate@k": 0.95,
+    "mrr@k": 0.8133067682317681,
+    "ndcg@k": 0.8467026901583825
+  },
+  "latency": {
+    "mean_ms": 27.31795565695003,
+    "p50_ms": 26.813996009877883,
+    "p95_ms": 33.54400100943167,
+    "p99_ms": 38.0006809864426,
+    "min_ms": 22.71404401108157,
+    "max_ms": 49.360039993189275
+  },
+  "throughput_qps": 252.01041510286993
+}

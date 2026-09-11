@@ -1,0 +1,27 @@
+collection_name: dbpedia_scalar_int8 # scalar (int8) quantization, float32 base dtype
+data:
+  # do not change data path -- vectors are computed server-side via Qdrant Cloud Inference
+  corpus:
+    path: ../../data/dbpedia/corpus.jsonl
+dense_vectors:
+  dtype: float32
+  quantization_config:
+    scalar:
+      type: int8
+      quantile: 0.99
+      memory: pinned
+  memory: cached
+colbert_vectors:
+  dtype: float32
+  quantization_config:
+    scalar:
+      type: int8
+      quantile: 0.99
+      memory: pinned
+  memory: cached
+  multivector_config:
+    comparator: max_sim
+  hnsw_config:
+    m: 0 # indexing should be disabled since we are using these for rescoring (otherwise very expensive)
+sparse_vectors:
+  modifier: idf

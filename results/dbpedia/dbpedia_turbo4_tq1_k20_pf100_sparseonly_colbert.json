@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_turbo4_tq1",
+  "config": "../qdrant-load/configs/dbpedia/config_tubo4_bits1.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": false,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.908,
+    "hit_rate@k": 0.908,
+    "mrr@k": 0.8546176046176046,
+    "ndcg@k": 0.867666805616316
+  },
+  "latency": {
+    "mean_ms": 48.918918024674916,
+    "p50_ms": 48.71215901221149,
+    "p95_ms": 60.18313398817554,
+    "p99_ms": 94.12294000503607,
+    "min_ms": 31.77847500774078,
+    "max_ms": 143.9786610135343
+  },
+  "throughput_qps": 76.0047013937741
+}

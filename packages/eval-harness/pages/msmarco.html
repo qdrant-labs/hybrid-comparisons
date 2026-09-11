@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>msmarco rescorer benchmark</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #F0F3FA;
+  color: #161E33;
+  font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  padding: 48px 32px 80px;
+}
+.page { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+h1 { font-size: 26px; font-weight: 500; color: #090E1A; margin: 0; }
+.method { font-size: 13.5px; color: #576280; line-height: 1.6; }
+.method b { color: #28324D; font-weight: 500; }
+.chart-title { font-size: 15px; color: #28324D; margin-bottom: 4px; }
+.card {
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 20px 24px 16px;
+}
+.legend { display: flex; gap: 18px; margin-bottom: 10px; font-size: 12.5px; color: #3D4866; }
+.chip { display: inline-flex; align-items: center; gap: 6px; }
+.legend-note { color: #717C99; }
+.value-table { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 11.5px; color: #3D4866; }
+.value-row { display: flex; gap: 14px; }
+.value-row-label { min-width: 92px; color: #161E33; }
+.dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.panel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.panel-row-2 { grid-template-columns: repeat(2, 1fr); }
+.panel-title { font-size: 11.5px; color: #576280; margin-bottom: 4px; }
+table.heatmap { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.heatmap th, table.heatmap td { padding: 10px 14px; text-align: center; }
+table.heatmap th { color: #576280; font-weight: 500; font-size: 11.5px; }
+table.heatmap td.rowhead { text-align: left; color: #28324D; }
+table.heatmap td.rowhead.turbo { color: #090E1A; font-weight: 600; }
+table.valuetable { font-variant-numeric: tabular-nums; }
+table.valuetable td:not(.rowhead) { color: #28324D; }
+footer { font-size: 12px; color: #717C99; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Hybrid Retrieval Benchmark &mdash; msmarco</h1>
+    <div class="method">
+      500 sampled queries, seed 42, warmup 10, concurrency 8. Dense: all-MiniLM-L6-v2.
+      Sparse: Qdrant/bm25. Colbert: answerai-colbert-small-v1. Cross-encoder: local fastembed
+      rerank (Xenova/ms-marco-MiniLM-L-6-v2). Dataset: jordane95/msmarco-passage-corpus-with-query,
+      100K passages, real associated search queries (no synthetic/LLM-generated queries).
+    </div>
+  </header>
+  
+<div class="chart-title">recall@20 by quantization config &times; rescorer (hybrid prefetch, prefetch_limit=100)</div>
+<div class="card">
+<table class="heatmap">
+  <thead><tr><th>config</th><th>colbert</th><th>cross-encoder</th><th>rrf</th></tr></thead>
+  <tbody>
+  <tr><td class="rowhead">no-quant (f32)</td><td style="background:#2F6FF0;color:#FFFFFF">96.8</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.2</td></tr><tr><td class="rowhead">no-quant (f16)</td><td style="background:#2F6FF0;color:#FFFFFF">96.8</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.2</td></tr><tr><td class="rowhead turbo">no-quant (turbo4)</td><td style="background:#2F6FF0;color:#FFFFFF">96.6</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.4</td></tr><tr><td class="rowhead">scalar int8</td><td style="background:#2F6FF0;color:#FFFFFF">97.0</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.2</td></tr><tr><td class="rowhead">product x16</td><td style="background:#2F6FF0;color:#FFFFFF">96.6</td><td style="background:#0040A1;color:#FFFFFF">97.6</td><td style="background:#89A9FF;color:#090E1A">95.6</td></tr><tr><td class="rowhead">binary (f32)</td><td style="background:#2F6FF0;color:#FFFFFF">96.6</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.2</td></tr><tr><td class="rowhead">binary (f16)</td><td style="background:#2F6FF0;color:#FFFFFF">96.8</td><td style="background:#0040A1;color:#FFFFFF">97.4</td><td style="background:#D9E2FE;color:#090E1A">95.2</td></tr><tr><td class="rowhead turbo">turbo4 tq1</td><td style="background:#2F6FF0;color:#FFFFFF">96.4</td><td style="background:#2F6FF0;color:#FFFFFF">97.2</td><td style="background:#D9E2FE;color:#090E1A">95.4</td></tr>
+  </tbody>
+</table>
+</div>
+
+
+<div class="chart-title">recall / mrr / ndcg by rescorer</div>
+<div class="card">
+<div class="legend">
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:1"></span>recall@20</span>
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:0.62"></span>mrr@20</span>
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:0.38"></span>ndcg@20</span>
+  <span class="legend-note">(opacity = metric; hue = rescorer)</span>
+</div>
+<svg viewBox="-36 0 896 380" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="60.0" y1="320.0" x2="840.0" y2="320.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="48.0" y="324.0" font-size="12" fill="#717C99" text-anchor="end">0.00</text>
+<line x1="60.0" y1="245.0" x2="840.0" y2="245.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="48.0" y="249.0" font-size="12" fill="#717C99" text-anchor="end">0.25</text>
+<line x1="60.0" y1="170.0" x2="840.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="48.0" y="174.0" font-size="12" fill="#717C99" text-anchor="end">0.50</text>
+<line x1="60.0" y1="95.0" x2="840.0" y2="95.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="48.0" y="99.0" font-size="12" fill="#717C99" text-anchor="end">0.75</text>
+<line x1="60.0" y1="20.0" x2="840.0" y2="20.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="48.0" y="24.0" font-size="12" fill="#717C99" text-anchor="end">1.00</text>
+<line x1="60.0" y1="320.0" x2="840.0" y2="320.0" stroke="#8F98B2" stroke-width="1"/>
+<rect x="133.0" y="29.9" width="34" height="290.1" rx="3" fill="#2F6FF0" fill-opacity="1.0"/>
+<text x="150.0" y="21.9" font-size="11.5" fill="#001848" text-anchor="middle">0.967</text>
+<rect x="173.0" y="107.0" width="34" height="213.0" rx="3" fill="#2F6FF0" fill-opacity="0.62"/>
+<text x="190.0" y="99.0" font-size="11.5" fill="#001848" text-anchor="middle">0.710</text>
+<rect x="213.0" y="88.4" width="34" height="231.6" rx="3" fill="#2F6FF0" fill-opacity="0.38"/>
+<text x="230.0" y="80.4" font-size="11.5" fill="#001848" text-anchor="middle">0.772</text>
+<text x="190.0" y="342.0" font-size="14" fill="#161E33" text-anchor="middle">colbert</text>
+<rect x="393.0" y="27.8" width="34" height="292.2" rx="3" fill="#038585" fill-opacity="1.0"/>
+<text x="410.0" y="19.8" font-size="11.5" fill="#002020" text-anchor="middle">0.974</text>
+<rect x="433.0" y="104.8" width="34" height="215.2" rx="3" fill="#038585" fill-opacity="0.62"/>
+<text x="450.0" y="96.8" font-size="11.5" fill="#002020" text-anchor="middle">0.717</text>
+<rect x="473.0" y="86.2" width="34" height="233.8" rx="3" fill="#038585" fill-opacity="0.38"/>
+<text x="490.0" y="78.2" font-size="11.5" fill="#002020" text-anchor="middle">0.779</text>
+<text x="450.0" y="342.0" font-size="14" fill="#161E33" text-anchor="middle">cross-encoder</text>
+<rect x="653.0" y="34.1" width="34" height="285.9" rx="3" fill="#8547FF" fill-opacity="1.0"/>
+<text x="670.0" y="26.1" font-size="11.5" fill="#24005B" text-anchor="middle">0.953</text>
+<rect x="693.0" y="126.5" width="34" height="193.5" rx="3" fill="#8547FF" fill-opacity="0.62"/>
+<text x="710.0" y="118.5" font-size="11.5" fill="#24005B" text-anchor="middle">0.645</text>
+<rect x="733.0" y="104.4" width="34" height="215.6" rx="3" fill="#8547FF" fill-opacity="0.38"/>
+<text x="750.0" y="96.4" font-size="11.5" fill="#24005B" text-anchor="middle">0.719</text>
+<text x="710.0" y="342.0" font-size="14" fill="#161E33" text-anchor="middle">rrf</text>
+<text x="18.0" y="170.0" font-size="13" fill="#717C99" text-anchor="middle" transform="rotate(-90 18.0 170.0)">score (0-1)</text>
+<text x="450.0" y="366.0" font-size="12.5" fill="#717C99" text-anchor="middle">rescorer (hybrid prefetch, k=20, prefetch_limit=100)</text>
+</svg>
+</div>
+
+
+<div class="chart-title">throughput by rescorer</div>
+<div class="card">
+<svg viewBox="-40 0 900 300" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="66.0" y1="213.5" x2="840.0" y2="213.5" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="217.5" font-size="12" fill="#717C99" text-anchor="end">0.5</text>
+<line x1="66.0" y1="193.4" x2="840.0" y2="193.4" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="197.4" font-size="12" fill="#717C99" text-anchor="end">1</text>
+<line x1="66.0" y1="146.8" x2="840.0" y2="146.8" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="150.8" font-size="12" fill="#717C99" text-anchor="end">5</text>
+<line x1="66.0" y1="126.8" x2="840.0" y2="126.8" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="130.8" font-size="12" fill="#717C99" text-anchor="end">10</text>
+<line x1="66.0" y1="80.2" x2="840.0" y2="80.2" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="84.2" font-size="12" fill="#717C99" text-anchor="end">50</text>
+<line x1="66.0" y1="60.1" x2="840.0" y2="60.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="64.1" font-size="12" fill="#717C99" text-anchor="end">100</text>
+<line x1="66.0" y1="28.3" x2="840.0" y2="28.3" stroke="#E1E5F0" stroke-width="1"/>
+<text x="54.0" y="32.3" font-size="12" fill="#717C99" text-anchor="end">300</text>
+<rect x="165.0" y="74.5" width="60.0" height="165.5" rx="3" fill="#2F6FF0"/>
+<text x="195.0" y="64.5" font-size="13" fill="#001848" text-anchor="middle">60.93 qps</text>
+<text x="195.0" y="262.0" font-size="14" fill="#161E33" text-anchor="middle">colbert</text>
+<rect x="423.0" y="219.3" width="60.0" height="20.7" rx="3" fill="#038585"/>
+<text x="453.0" y="209.3" font-size="13" fill="#002020" text-anchor="middle">0.41 qps</text>
+<text x="453.0" y="262.0" font-size="14" fill="#161E33" text-anchor="middle">cross-encoder</text>
+<rect x="681.0" y="32.8" width="60.0" height="207.2" rx="3" fill="#8547FF"/>
+<text x="711.0" y="22.8" font-size="13" fill="#24005B" text-anchor="middle">256.89 qps</text>
+<text x="711.0" y="262.0" font-size="14" fill="#161E33" text-anchor="middle">rrf</text>
+<text x="20.0" y="130.0" font-size="13" fill="#717C99" text-anchor="middle" transform="rotate(-90 20.0 130.0)">throughput, qps (log)</text>
+<text x="453.0" y="286.0" font-size="12.5" fill="#717C99" text-anchor="middle">rescorer, concurrency=8 (hybrid, k=20, prefetch_limit=100)</text>
+</svg>
+</div>
+
+
+<div class="chart-title">recall@20 vs prefetch_limit, by rescorer (hybrid, k=20)</div>
+<div class="card">
+<div class="panel-row"><div class="panel">
+<div class="panel-title">colbert &middot; recall@20</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="170.0" x2="266.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="173.5" font-size="10.5" fill="#717C99" text-anchor="end">0.94</text>
+<line x1="46.0" y1="92.0" x2="266.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="95.5" font-size="10.5" fill="#717C99" text-anchor="end">0.96</text>
+<line x1="46.0" y1="14.0" x2="266.0" y2="14.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="17.5" font-size="10.5" fill="#717C99" text-anchor="end">0.98</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 93.9 L 156.0 60.0 L 266.0 64.7" fill="none" stroke="#2F6FF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="93.9" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="93.9" r="3" fill="#2F6FF0"/>
+<circle cx="156.0" cy="60.0" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="60.0" r="3" fill="#2F6FF0"/>
+<circle cx="266.0" cy="64.7" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="64.7" r="3" fill="#2F6FF0"/>
+<text x="274.0" y="68.7" font-size="11" fill="#001848" text-anchor="start">96.7%</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">cross-encoder &middot; recall@20</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="170.0" x2="266.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="173.5" font-size="10.5" fill="#717C99" text-anchor="end">0.94</text>
+<line x1="46.0" y1="92.0" x2="266.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="95.5" font-size="10.5" fill="#717C99" text-anchor="end">0.96</text>
+<line x1="46.0" y1="14.0" x2="266.0" y2="14.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="17.5" font-size="10.5" fill="#717C99" text-anchor="end">0.98</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 93.2 L 156.0 58.8 L 266.0 37.4" fill="none" stroke="#038585" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="93.2" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="93.2" r="3" fill="#038585"/>
+<circle cx="156.0" cy="58.8" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="58.8" r="3" fill="#038585"/>
+<circle cx="266.0" cy="37.4" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="37.4" r="3" fill="#038585"/>
+<text x="274.0" y="41.4" font-size="11" fill="#002020" text-anchor="start">97.4%</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">rrf &middot; recall@20</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="170.0" x2="266.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="173.5" font-size="10.5" fill="#717C99" text-anchor="end">0.94</text>
+<line x1="46.0" y1="92.0" x2="266.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="95.5" font-size="10.5" fill="#717C99" text-anchor="end">0.96</text>
+<line x1="46.0" y1="14.0" x2="266.0" y2="14.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="17.5" font-size="10.5" fill="#717C99" text-anchor="end">0.98</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 112.7 L 156.0 115.4 L 266.0 119.3" fill="none" stroke="#8547FF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="112.7" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="112.7" r="3" fill="#8547FF"/>
+<circle cx="156.0" cy="115.4" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="115.4" r="3" fill="#8547FF"/>
+<circle cx="266.0" cy="119.3" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="119.3" r="3" fill="#8547FF"/>
+<text x="274.0" y="123.3" font-size="11" fill="#24005B" text-anchor="start">95.3%</text>
+</svg>
+</div></div>
+</div>
+
+<div class="chart-title">throughput vs prefetch_limit, by rescorer (hybrid, k=20)</div>
+<div class="card">
+<div class="panel-row"><div class="panel">
+<div class="panel-title">colbert &middot; qps (log)</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="143.9" x2="266.0" y2="143.9" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="147.4" font-size="10.5" fill="#717C99" text-anchor="end">1</text>
+<line x1="46.0" y1="94.0" x2="266.0" y2="94.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="97.5" font-size="10.5" fill="#717C99" text-anchor="end">10</text>
+<line x1="46.0" y1="44.1" x2="266.0" y2="44.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="47.6" font-size="10.5" fill="#717C99" text-anchor="end">100</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 54.5 L 156.0 54.4 L 266.0 54.8" fill="none" stroke="#2F6FF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="54.5" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="54.5" r="3" fill="#2F6FF0"/>
+<circle cx="156.0" cy="54.4" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="54.4" r="3" fill="#2F6FF0"/>
+<circle cx="266.0" cy="54.8" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="54.8" r="3" fill="#2F6FF0"/>
+<text x="274.0" y="58.8" font-size="11" fill="#001848" text-anchor="start">60.93</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">cross-encoder &middot; qps (log)</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="143.9" x2="266.0" y2="143.9" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="147.4" font-size="10.5" fill="#717C99" text-anchor="end">1</text>
+<line x1="46.0" y1="94.0" x2="266.0" y2="94.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="97.5" font-size="10.5" fill="#717C99" text-anchor="end">10</text>
+<line x1="46.0" y1="44.1" x2="266.0" y2="44.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="47.6" font-size="10.5" fill="#717C99" text-anchor="end">100</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 130.2 L 156.0 147.8 L 266.0 163.2" fill="none" stroke="#038585" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="130.2" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="130.2" r="3" fill="#038585"/>
+<circle cx="156.0" cy="147.8" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="147.8" r="3" fill="#038585"/>
+<circle cx="266.0" cy="163.2" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="163.2" r="3" fill="#038585"/>
+<text x="274.0" y="167.2" font-size="11" fill="#002020" text-anchor="start">0.41</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">rrf &middot; qps (log)</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="143.9" x2="266.0" y2="143.9" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="147.4" font-size="10.5" fill="#717C99" text-anchor="end">1</text>
+<line x1="46.0" y1="94.0" x2="266.0" y2="94.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="97.5" font-size="10.5" fill="#717C99" text-anchor="end">10</text>
+<line x1="46.0" y1="44.1" x2="266.0" y2="44.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="47.6" font-size="10.5" fill="#717C99" text-anchor="end">100</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 23.5 L 156.0 24.0 L 266.0 23.6" fill="none" stroke="#8547FF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="23.5" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="23.5" r="3" fill="#8547FF"/>
+<circle cx="156.0" cy="24.0" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="24.0" r="3" fill="#8547FF"/>
+<circle cx="266.0" cy="23.6" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="23.6" r="3" fill="#8547FF"/>
+<text x="274.0" y="27.6" font-size="11" fill="#24005B" text-anchor="start">256.89</text>
+</svg>
+</div></div>
+</div>
+
+
+<div class="chart-title">colbert &amp; cross-encoder, hybrid vs sparse-only prefetch (k=20, prefetch_limit=100)</div>
+<div class="card">
+<div class="legend">
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:1"></span>recall@20</span>
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:0.62"></span>mrr@20</span>
+  <span class="chip"><span class="dot" style="background:#28324D;opacity:0.38"></span>ndcg@20</span>
+  <span class="legend-note">(opacity = metric; hue = rescorer)</span>
+</div>
+<div class="panel-row panel-row-2"><div class="panel">
+<div class="panel-title">hybrid prefetch</div>
+<svg viewBox="0 0 380 300" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="50.0" y1="260.0" x2="364.0" y2="260.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="264.0" font-size="10.5" fill="#717C99" text-anchor="end">0.00</text>
+<line x1="50.0" y1="199.0" x2="364.0" y2="199.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="203.0" font-size="10.5" fill="#717C99" text-anchor="end">0.25</text>
+<line x1="50.0" y1="138.0" x2="364.0" y2="138.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="142.0" font-size="10.5" fill="#717C99" text-anchor="end">0.50</text>
+<line x1="50.0" y1="77.0" x2="364.0" y2="77.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="81.0" font-size="10.5" fill="#717C99" text-anchor="end">0.75</text>
+<line x1="50.0" y1="16.0" x2="364.0" y2="16.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="20.0" font-size="10.5" fill="#717C99" text-anchor="end">1.00</text>
+<line x1="50.0" y1="260.0" x2="364.0" y2="260.0" stroke="#8F98B2" stroke-width="1"/>
+<rect x="94.5" y="24.1" width="20" height="235.9" rx="3" fill="#2F6FF0" fill-opacity="1.0"/>
+<text x="104.5" y="17.1" font-size="10" fill="#001848" text-anchor="middle">0.967</text>
+<rect x="118.5" y="86.8" width="20" height="173.2" rx="3" fill="#2F6FF0" fill-opacity="0.62"/>
+<rect x="142.5" y="71.6" width="20" height="188.4" rx="3" fill="#2F6FF0" fill-opacity="0.38"/>
+<text x="128.5" y="278.0" font-size="12.5" fill="#161E33" text-anchor="middle">colbert</text>
+<rect x="251.5" y="22.3" width="20" height="237.7" rx="3" fill="#2F6FF0" fill-opacity="1.0"/>
+<text x="261.5" y="15.3" font-size="10" fill="#001848" text-anchor="middle">0.974</text>
+<rect x="275.5" y="85.0" width="20" height="175.0" rx="3" fill="#2F6FF0" fill-opacity="0.62"/>
+<rect x="299.5" y="69.9" width="20" height="190.1" rx="3" fill="#2F6FF0" fill-opacity="0.38"/>
+<text x="285.5" y="278.0" font-size="12.5" fill="#161E33" text-anchor="middle">cross-encoder</text>
+</svg>
+<div class="value-table"><div class="value-row"><span class="value-row-label">colbert</span><span>mrr 0.710</span><span>ndcg 0.772</span></div><div class="value-row"><span class="value-row-label">cross-encoder</span><span>mrr 0.717</span><span>ndcg 0.779</span></div></div>
+</div><div class="panel">
+<div class="panel-title">sparse-only prefetch</div>
+<svg viewBox="0 0 380 300" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="50.0" y1="260.0" x2="364.0" y2="260.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="264.0" font-size="10.5" fill="#717C99" text-anchor="end">0.00</text>
+<line x1="50.0" y1="199.0" x2="364.0" y2="199.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="203.0" font-size="10.5" fill="#717C99" text-anchor="end">0.25</text>
+<line x1="50.0" y1="138.0" x2="364.0" y2="138.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="142.0" font-size="10.5" fill="#717C99" text-anchor="end">0.50</text>
+<line x1="50.0" y1="77.0" x2="364.0" y2="77.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="81.0" font-size="10.5" fill="#717C99" text-anchor="end">0.75</text>
+<line x1="50.0" y1="16.0" x2="364.0" y2="16.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="42.0" y="20.0" font-size="10.5" fill="#717C99" text-anchor="end">1.00</text>
+<line x1="50.0" y1="260.0" x2="364.0" y2="260.0" stroke="#8F98B2" stroke-width="1"/>
+<rect x="94.5" y="33.9" width="20" height="226.1" rx="3" fill="#038585" fill-opacity="1.0"/>
+<text x="104.5" y="26.9" font-size="10" fill="#002020" text-anchor="middle">0.926</text>
+<rect x="118.5" y="89.4" width="20" height="170.6" rx="3" fill="#038585" fill-opacity="0.62"/>
+<rect x="142.5" y="75.9" width="20" height="184.1" rx="3" fill="#038585" fill-opacity="0.38"/>
+<text x="128.5" y="278.0" font-size="12.5" fill="#161E33" text-anchor="middle">colbert</text>
+<rect x="251.5" y="33.1" width="20" height="226.9" rx="3" fill="#038585" fill-opacity="1.0"/>
+<text x="261.5" y="26.1" font-size="10" fill="#002020" text-anchor="middle">0.930</text>
+<rect x="275.5" y="89.0" width="20" height="171.0" rx="3" fill="#038585" fill-opacity="0.62"/>
+<rect x="299.5" y="75.3" width="20" height="184.7" rx="3" fill="#038585" fill-opacity="0.38"/>
+<text x="285.5" y="278.0" font-size="12.5" fill="#161E33" text-anchor="middle">cross-encoder</text>
+</svg>
+<div class="value-table"><div class="value-row"><span class="value-row-label">colbert</span><span>mrr 0.699</span><span>ndcg 0.754</span></div><div class="value-row"><span class="value-row-label">cross-encoder</span><span>mrr 0.701</span><span>ndcg 0.757</span></div></div>
+</div></div>
+</div>
+
+
+<div class="chart-title">recall@20 vs prefetch_limit, colbert &amp; cross-encoder (sparse-only, k=20)</div>
+<div class="card">
+<div class="panel-row panel-row-2"><div class="panel">
+<div class="panel-title">colbert &middot; recall@20</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="170.0" x2="266.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="173.5" font-size="10.5" fill="#717C99" text-anchor="end">0.86</text>
+<line x1="46.0" y1="92.0" x2="266.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="95.5" font-size="10.5" fill="#717C99" text-anchor="end">0.90</text>
+<line x1="46.0" y1="14.0" x2="266.0" y2="14.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="17.5" font-size="10.5" fill="#717C99" text-anchor="end">0.94</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 127.1 L 156.0 77.8 L 266.0 40.3" fill="none" stroke="#2F6FF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="127.1" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="127.1" r="3" fill="#2F6FF0"/>
+<circle cx="156.0" cy="77.8" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="77.8" r="3" fill="#2F6FF0"/>
+<circle cx="266.0" cy="40.3" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="40.3" r="3" fill="#2F6FF0"/>
+<text x="274.0" y="44.3" font-size="11" fill="#001848" text-anchor="start">92.7%</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">cross-encoder &middot; recall@20</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="170.0" x2="266.0" y2="170.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="173.5" font-size="10.5" fill="#717C99" text-anchor="end">0.86</text>
+<line x1="46.0" y1="92.0" x2="266.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="95.5" font-size="10.5" fill="#717C99" text-anchor="end">0.90</text>
+<line x1="46.0" y1="14.0" x2="266.0" y2="14.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="17.5" font-size="10.5" fill="#717C99" text-anchor="end">0.94</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 127.1 L 156.0 76.4 L 266.0 33.5" fill="none" stroke="#038585" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="127.1" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="127.1" r="3" fill="#038585"/>
+<circle cx="156.0" cy="76.4" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="76.4" r="3" fill="#038585"/>
+<circle cx="266.0" cy="33.5" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="33.5" r="3" fill="#038585"/>
+<text x="274.0" y="37.5" font-size="11" fill="#002020" text-anchor="start">93.0%</text>
+</svg>
+</div></div>
+</div>
+
+<div class="chart-title">throughput vs prefetch_limit, colbert &amp; cross-encoder (sparse-only, k=20)</div>
+<div class="card">
+<div class="panel-row panel-row-2"><div class="panel">
+<div class="panel-title">colbert &middot; qps (log)</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="143.9" x2="266.0" y2="143.9" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="147.4" font-size="10.5" fill="#717C99" text-anchor="end">1</text>
+<line x1="46.0" y1="94.0" x2="266.0" y2="94.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="97.5" font-size="10.5" fill="#717C99" text-anchor="end">10</text>
+<line x1="46.0" y1="44.1" x2="266.0" y2="44.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="47.6" font-size="10.5" fill="#717C99" text-anchor="end">100</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 52.0 L 156.0 52.2 L 266.0 52.3" fill="none" stroke="#2F6FF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="52.0" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="52.0" r="3" fill="#2F6FF0"/>
+<circle cx="156.0" cy="52.2" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="52.2" r="3" fill="#2F6FF0"/>
+<circle cx="266.0" cy="52.3" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="52.3" r="3" fill="#2F6FF0"/>
+<text x="274.0" y="56.3" font-size="11" fill="#001848" text-anchor="start">68.26</text>
+</svg>
+</div><div class="panel">
+<div class="panel-title">cross-encoder &middot; qps (log)</div>
+<svg viewBox="0 0 280 210" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="46.0" y1="143.9" x2="266.0" y2="143.9" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="147.4" font-size="10.5" fill="#717C99" text-anchor="end">1</text>
+<line x1="46.0" y1="94.0" x2="266.0" y2="94.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="97.5" font-size="10.5" fill="#717C99" text-anchor="end">10</text>
+<line x1="46.0" y1="44.1" x2="266.0" y2="44.1" stroke="#E1E5F0" stroke-width="1"/>
+<text x="38.0" y="47.6" font-size="10.5" fill="#717C99" text-anchor="end">100</text>
+<text x="46.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=25</text>
+<text x="156.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=50</text>
+<text x="266.0" y="188.0" font-size="10.5" fill="#717C99" text-anchor="middle">pf=100</text>
+<path d="M 46.0 129.9 L 156.0 148.1 L 266.0 162.7" fill="none" stroke="#038585" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="46.0" cy="129.9" r="4.5" fill="#FFFFFF"/>
+<circle cx="46.0" cy="129.9" r="3" fill="#038585"/>
+<circle cx="156.0" cy="148.1" r="4.5" fill="#FFFFFF"/>
+<circle cx="156.0" cy="148.1" r="3" fill="#038585"/>
+<circle cx="266.0" cy="162.7" r="4.5" fill="#FFFFFF"/>
+<circle cx="266.0" cy="162.7" r="3" fill="#038585"/>
+<text x="274.0" y="166.7" font-size="11" fill="#002020" text-anchor="start">0.42</text>
+</svg>
+</div></div>
+</div>
+
+
+<div class="chart-title">mrr@20 by config, colbert rescorer (bold outline = turbo4 datatype)</div>
+<div class="card">
+<div class="legend"><span class="chip"><span class="dot" style="background:#2F6FF0"></span>hybrid</span><span class="chip"><span class="dot" style="background:#038585"></span>sparse-only</span></div>
+<svg viewBox="-30 0 930 300" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="56.0" y1="240.0" x2="880.0" y2="240.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="244.0" font-size="11" fill="#717C99" text-anchor="end">0.650</text>
+<line x1="56.0" y1="166.0" x2="880.0" y2="166.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="170.0" font-size="11" fill="#717C99" text-anchor="end">0.673</text>
+<line x1="56.0" y1="92.0" x2="880.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="96.0" font-size="11" fill="#717C99" text-anchor="end">0.697</text>
+<line x1="56.0" y1="18.0" x2="880.0" y2="18.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="22.0" font-size="11" fill="#717C99" text-anchor="end">0.720</text>
+<rect x="88.5" y="33.5" width="17" height="206.5" rx="3" fill="#2F6FF0"/>
+<rect x="109.5" y="79.5" width="17" height="160.5" rx="3" fill="#038585"/>
+<text x="107.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">no-quant (f32)</text>
+<rect x="191.5" y="34.5" width="17" height="205.5" rx="3" fill="#2F6FF0"/>
+<rect x="212.5" y="83.0" width="17" height="157.0" rx="3" fill="#038585"/>
+<text x="210.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">no-quant (f16)</text>
+<rect x="294.5" y="63.7" width="17" height="176.3" rx="3" fill="#2F6FF0" stroke="#090E1A" stroke-width="1.5"/>
+<rect x="315.5" y="105.2" width="17" height="134.8" rx="3" fill="#038585" stroke="#090E1A" stroke-width="1.5"/>
+<text x="313.5" y="260.0" font-size="11" fill="#090E1A" text-anchor="middle" font-weight="600">no-quant (turbo4)</text>
+<rect x="397.5" y="50.7" width="17" height="189.3" rx="3" fill="#2F6FF0"/>
+<rect x="418.5" y="59.5" width="17" height="180.5" rx="3" fill="#038585"/>
+<text x="416.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">scalar int8</text>
+<rect x="500.5" y="85.6" width="17" height="154.4" rx="3" fill="#2F6FF0"/>
+<rect x="521.5" y="81.4" width="17" height="158.6" rx="3" fill="#038585"/>
+<text x="519.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">product x16</text>
+<rect x="603.5" y="33.9" width="17" height="206.1" rx="3" fill="#2F6FF0"/>
+<rect x="624.5" y="80.5" width="17" height="159.5" rx="3" fill="#038585"/>
+<text x="622.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">binary (f32)</text>
+<rect x="706.5" y="33.2" width="17" height="206.8" rx="3" fill="#2F6FF0"/>
+<rect x="727.5" y="83.0" width="17" height="157.0" rx="3" fill="#038585"/>
+<text x="725.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">binary (f16)</text>
+<rect x="809.5" y="65.6" width="17" height="174.4" rx="3" fill="#2F6FF0" stroke="#090E1A" stroke-width="1.5"/>
+<rect x="830.5" y="104.9" width="17" height="135.1" rx="3" fill="#038585" stroke="#090E1A" stroke-width="1.5"/>
+<text x="828.5" y="260.0" font-size="11" fill="#090E1A" text-anchor="middle" font-weight="600">turbo4 tq1</text>
+</svg>
+</div>
+
+
+<div class="chart-title">ndcg@20 by config, colbert rescorer (bold outline = turbo4 datatype)</div>
+<div class="card">
+<div class="legend"><span class="chip"><span class="dot" style="background:#2F6FF0"></span>hybrid</span><span class="chip"><span class="dot" style="background:#038585"></span>sparse-only</span></div>
+<svg viewBox="-30 0 930 300" width="100%" style="display:block" xmlns="http://www.w3.org/2000/svg">
+<line x1="56.0" y1="240.0" x2="880.0" y2="240.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="244.0" font-size="11" fill="#717C99" text-anchor="end">0.720</text>
+<line x1="56.0" y1="166.0" x2="880.0" y2="166.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="170.0" font-size="11" fill="#717C99" text-anchor="end">0.740</text>
+<line x1="56.0" y1="92.0" x2="880.0" y2="92.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="96.0" font-size="11" fill="#717C99" text-anchor="end">0.760</text>
+<line x1="56.0" y1="18.0" x2="880.0" y2="18.0" stroke="#E1E5F0" stroke-width="1"/>
+<text x="46.0" y="22.0" font-size="11" fill="#717C99" text-anchor="end">0.780</text>
+<rect x="88.5" y="31.7" width="17" height="208.3" rx="3" fill="#2F6FF0"/>
+<rect x="109.5" y="107.5" width="17" height="132.5" rx="3" fill="#038585"/>
+<text x="107.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">no-quant (f32)</text>
+<rect x="191.5" y="32.8" width="17" height="207.2" rx="3" fill="#2F6FF0"/>
+<rect x="212.5" y="110.5" width="17" height="129.5" rx="3" fill="#038585"/>
+<text x="210.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">no-quant (f16)</text>
+<rect x="294.5" y="59.4" width="17" height="180.6" rx="3" fill="#2F6FF0" stroke="#090E1A" stroke-width="1.5"/>
+<rect x="315.5" y="132.3" width="17" height="107.7" rx="3" fill="#038585" stroke="#090E1A" stroke-width="1.5"/>
+<text x="313.5" y="260.0" font-size="11" fill="#090E1A" text-anchor="middle" font-weight="600">no-quant (turbo4)</text>
+<rect x="397.5" y="45.0" width="17" height="195.0" rx="3" fill="#2F6FF0"/>
+<rect x="418.5" y="89.4" width="17" height="150.6" rx="3" fill="#038585"/>
+<text x="416.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">scalar int8</text>
+<rect x="500.5" y="80.9" width="17" height="159.1" rx="3" fill="#2F6FF0"/>
+<rect x="521.5" y="110.9" width="17" height="129.1" rx="3" fill="#038585"/>
+<text x="519.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">product x16</text>
+<rect x="603.5" y="33.5" width="17" height="206.5" rx="3" fill="#2F6FF0"/>
+<rect x="624.5" y="109.8" width="17" height="130.2" rx="3" fill="#038585"/>
+<text x="622.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">binary (f32)</text>
+<rect x="706.5" y="31.7" width="17" height="208.3" rx="3" fill="#2F6FF0"/>
+<rect x="727.5" y="110.1" width="17" height="129.9" rx="3" fill="#038585"/>
+<text x="725.5" y="260.0" font-size="11" fill="#717C99" text-anchor="middle">binary (f16)</text>
+<rect x="809.5" y="62.8" width="17" height="177.2" rx="3" fill="#2F6FF0" stroke="#090E1A" stroke-width="1.5"/>
+<rect x="830.5" y="132.0" width="17" height="108.0" rx="3" fill="#038585" stroke="#090E1A" stroke-width="1.5"/>
+<text x="828.5" y="260.0" font-size="11" fill="#090E1A" text-anchor="middle" font-weight="600">turbo4 tq1</text>
+</svg>
+</div>
+
+
+<div class="chart-title">exact values, colbert rescorer, k=20 prefetch_limit=100</div>
+<div class="card">
+<table class="heatmap valuetable">
+  <thead><tr><th>config</th><th>hybrid mrr</th><th>hybrid ndcg</th><th>sparse-only mrr</th><th>sparse-only ndcg</th></tr></thead>
+  <tbody>
+  <tr><td class="rowhead">no-quant (f32)</td><td>0.7151</td><td>0.7763</td><td>0.7006</td><td>0.7558</td></tr><tr><td class="rowhead">no-quant (f16)</td><td>0.7148</td><td>0.7760</td><td>0.6995</td><td>0.7550</td></tr><tr><td class="rowhead turbo">no-quant (turbo4)</td><td>0.7056</td><td>0.7688</td><td>0.6925</td><td>0.7491</td></tr><tr><td class="rowhead">scalar int8</td><td>0.7097</td><td>0.7727</td><td>0.7069</td><td>0.7607</td></tr><tr><td class="rowhead">product x16</td><td>0.6987</td><td>0.7630</td><td>0.7000</td><td>0.7549</td></tr><tr><td class="rowhead">binary (f32)</td><td>0.7150</td><td>0.7758</td><td>0.7003</td><td>0.7552</td></tr><tr><td class="rowhead">binary (f16)</td><td>0.7152</td><td>0.7763</td><td>0.6995</td><td>0.7551</td></tr><tr><td class="rowhead turbo">turbo4 tq1</td><td>0.7050</td><td>0.7679</td><td>0.6926</td><td>0.7492</td></tr>
+  </tbody>
+</table>
+</div>
+
+  <footer>
+    test_binary excluded from every sparse-only + cross-encoder number: that specific
+    collection's results for that one combination were internally inconsistent with the
+    other 7 configs (which are all byte-identical, as expected since sparse vectors are
+    never quantized) &mdash; a leftover data-integrity issue from that collection being
+    re-used across an earlier interrupted run, not a real effect. Its hybrid+cross-encoder
+    and sparse-only+colbert numbers are unaffected and included as normal. rrf has no
+    sparse-only variant (rank fusion needs &ge;2 sources). test_uint8_scalar excluded
+    throughout: a scoring bug when stacking uint8 base dtype with int8 scalar quantization,
+    not a genuine quality finding.
+  </footer>
+</div>
+</body>
+</html>

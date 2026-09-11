@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_float32_noquant",
+  "config": "../qdrant-load/configs/dbpedia/config_float32_noquant.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": true,
+  "rescorer": "rrf",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.95,
+    "hit_rate@k": 0.95,
+    "mrr@k": 0.8103709318459319,
+    "ndcg@k": 0.8445795808497101
+  },
+  "latency": {
+    "mean_ms": 27.190720814289712,
+    "p50_ms": 26.558431010926142,
+    "p95_ms": 31.590573998983018,
+    "p99_ms": 39.195208009914495,
+    "min_ms": 23.030805998132564,
+    "max_ms": 50.45779400097672
+  },
+  "throughput_qps": 285.2768833837637
+}

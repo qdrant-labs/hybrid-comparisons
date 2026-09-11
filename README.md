@@ -48,6 +48,33 @@ passage's real, associated search queries, later used by eval-harness to
 build eval query sets — no synthetic/LLM-generated queries anywhere in this
 pipeline. This is the only corpus asset the rest of the pipeline needs.
 
+### A second dataset: dbpedia
+
+`packages/download-dbpedia` builds the same `{pid, text, queries}` JSONL
+shape from `BeIR/dbpedia-entity-generated-queries` instead:
+
+```bash
+cd packages/download-dbpedia
+uv run download-dbpedia   # writes ../../data/dbpedia/corpus.jsonl
+```
+
+`packages/qdrant-load/configs/dbpedia/` mirrors every config in
+`packages/qdrant-load/configs/` (same quantization schemes, `collection_name`
+prefixed `dbpedia_` instead of `test_`, corpus path pointing at
+`data/dbpedia/corpus.jsonl`). `run_sweep.sh`'s default glob only picks up the
+top-level `configs/*.yml`, so running it as-is never touches the dbpedia set —
+point it there explicitly with a separate `OUTPUT_DIR`:
+
+```bash
+OUTPUT_DIR=../../results/dbpedia RESCORERS="colbert,cross-encoder,rrf" \
+  ./run_sweep.sh ../qdrant-load/configs/dbpedia/*.yml
+```
+
+To add another dataset, follow the same pattern: a `download-<name>` package
+that writes `data/<name>/corpus.jsonl` in the same shape, a
+`configs/<name>/` directory of mirrored configs, and a `results/<name>/`
+output directory.
+
 ## 2. Configs
 
 Each YAML file under `packages/qdrant-load/configs/` describes one collection

@@ -1,0 +1,25 @@
+{
+  "collection_name": "dbpedia_turbo4_noquant",
+  "config": "../qdrant-load/configs/dbpedia/config_turbo4_noquant.yml",
+  "n_queries": 500,
+  "k": 20,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": false,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.9,
+    "hit_rate@k": 0.9,
+    "mrr@k": 0.8468194444444443,
+    "ndcg@k": 0.8598487636726854
+  },
+  "latency": {
+    "mean_ms": 39.448980052542055,
+    "p50_ms": 38.945718988543376,
+    "p95_ms": 45.30975199304521,
+    "p99_ms": 49.70178901567124,
+    "min_ms": 31.355425977380946,
+    "max_ms": 64.79155100532807
+  },
+  "throughput_qps": 74.5205248157751
+}
