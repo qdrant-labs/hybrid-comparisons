@@ -16,7 +16,9 @@ N_ROWS = 100_000
 
 def main() -> None:
     path = sys.argv[1] if len(sys.argv) >= 2 else "corpus.jsonl"
-    src_path = hf_hub_download(repo_id=REPO_ID, filename="corpus.jsonl.gz", repo_type="dataset")
+    src_path = hf_hub_download(
+        repo_id=REPO_ID, filename="corpus.jsonl.gz", repo_type="dataset"
+    )
 
     with gzip.open(src_path, "rt") as src, open(path, "w") as out:
         for pid, line in enumerate(src):
@@ -27,3 +29,6 @@ def main() -> None:
             queries = [q.strip() for q in row["queries"] if q and q.strip()]
             out.write(json.dumps({"pid": pid, "text": text, "queries": queries}) + "\n")
     print(f"Successfully wrote {N_ROWS} passages (with queries) to {path}")
+
+if __name__ == "__main__":
+    main()

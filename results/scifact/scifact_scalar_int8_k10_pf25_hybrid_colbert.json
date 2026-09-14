@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_scalar_int8",
+  "config": "../qdrant-load/configs/scifact/config_scalar_int8.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 25,
+  "use_dense_prefetch": true,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.87,
+    "hit_rate@k": 0.87,
+    "mrr@k": 0.4842341269841272,
+    "ndcg@k": 0.57996568445657
+  },
+  "latency": {
+    "mean_ms": 42.958793791411956,
+    "p50_ms": 42.09448199253529,
+    "p95_ms": 49.638466007309034,
+    "p99_ms": 65.34919500700198,
+    "min_ms": 36.16533899912611,
+    "max_ms": 65.34919500700198
+  },
+  "throughput_qps": 58.63327206603993
+}

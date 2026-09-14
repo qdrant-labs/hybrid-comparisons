@@ -33,7 +33,9 @@ def main() -> None:
                 "config": r["config"],
                 "k": r["k"],
                 "prefetch_limit": r["prefetch_limit"],
-                "prefetch_mode": "hybrid" if r.get("use_dense_prefetch", True) else "sparseonly",
+                "prefetch_mode": "hybrid"
+                if r.get("use_dense_prefetch", True)
+                else "sparseonly",
                 "rescorer": r.get("rescorer", "colbert"),
                 "recall@k": round(r["quality"]["recall@k"], 4),
                 "mrr@k": round(r["quality"]["mrr@k"], 4),
@@ -45,7 +47,15 @@ def main() -> None:
             }
         )
 
-    rows.sort(key=lambda row: (row["collection"], row["prefetch_mode"], row["rescorer"], row["k"], row["prefetch_limit"]))
+    rows.sort(
+        key=lambda row: (
+            row["collection"],
+            row["prefetch_mode"],
+            row["rescorer"],
+            row["k"],
+            row["prefetch_limit"],
+        )
+    )
 
     out_path = results_dir / "summary.csv"
     with open(out_path, "w", newline="") as f:
@@ -53,7 +63,9 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
 
-    widths = {key: max(len(key), *(len(str(row[key])) for row in rows)) for key in rows[0]}
+    widths = {
+        key: max(len(key), *(len(str(row[key])) for row in rows)) for key in rows[0]
+    }
     header = "  ".join(key.ljust(widths[key]) for key in rows[0])
     print(header)
     print("-" * len(header))

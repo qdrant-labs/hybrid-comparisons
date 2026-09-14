@@ -48,32 +48,42 @@ passage's real, associated search queries, later used by eval-harness to
 build eval query sets — no synthetic/LLM-generated queries anywhere in this
 pipeline. This is the only corpus asset the rest of the pipeline needs.
 
-### A second dataset: dbpedia
+### More datasets: BeIR
 
-`packages/download-dbpedia` builds the same `{pid, text, queries}` JSONL
-shape from `BeIR/dbpedia-entity-generated-queries` instead:
+`packages/download-beir` builds the same `{pid, text, queries}` JSONL shape
+from any `BeIR/<name>-generated-queries` dataset on the Hub:
 
 ```bash
-cd packages/download-dbpedia
-uv run download-dbpedia   # writes ../../data/dbpedia/corpus.jsonl
+cd packages/download-beir
+uv run download-beir dbpedia-entity-generated-queries          # writes ../../data/dbpedia-entity/corpus.jsonl
+uv run download-beir scifact-generated-queries 15422           # optional 2nd arg caps how many rows are pulled
 ```
 
-`packages/qdrant-load/configs/dbpedia/` mirrors every config in
-`packages/qdrant-load/configs/` (same quantization schemes, `collection_name`
-prefixed `dbpedia_` instead of `test_`, corpus path pointing at
-`data/dbpedia/corpus.jsonl`). `run_sweep.sh`'s default glob only picks up the
-top-level `configs/*.yml`, so running it as-is never touches the dbpedia set —
-point it there explicitly with a separate `OUTPUT_DIR`:
+It writes to `../../data/<name>/corpus.jsonl`, where `<name>` is the dataset
+name with any trailing `-generated-queries` stripped (so
+`dbpedia-entity-generated-queries` → `data/dbpedia-entity/`,
+`scifact-generated-queries` → `data/scifact/`). 
+
+For each dataset, `packages/qdrant-load/configs/<name>/` mirrors every config
+in `packages/qdrant-load/configs/` (same quantization schemes,
+`collection_name` prefixed `<name>_` instead of `test_`, corpus path pointing
+at `data/<name>/corpus.jsonl`). `run_sweep.sh`'s default glob only picks up
+the top-level `configs/*.yml`, so running it as-is never touches these — point
+it there explicitly with a separate `OUTPUT_DIR`:
 
 ```bash
 OUTPUT_DIR=../../results/dbpedia RESCORERS="colbert,cross-encoder,rrf" \
   ./run_sweep.sh ../qdrant-load/configs/dbpedia/*.yml
+
+# scifact's corpus is much smaller (15.4K passages vs. 100K) -- fewer queries
+# is a reasonable call there:
+N_QUERIES=100 OUTPUT_DIR=../../results/scifact RESCORERS="colbert,cross-encoder,rrf" \
+  ./run_sweep.sh ../qdrant-load/configs/scifact/*.yml
 ```
 
-To add another dataset, follow the same pattern: a `download-<name>` package
-that writes `data/<name>/corpus.jsonl` in the same shape, a
-`configs/<name>/` directory of mirrored configs, and a `results/<name>/`
-output directory.
+To add another dataset, follow the same pattern: `download-beir
+<name>-generated-queries`, a `configs/<name>/` directory of mirrored configs,
+and a `results/<name>/` output directory.
 
 ## 2. Configs
 

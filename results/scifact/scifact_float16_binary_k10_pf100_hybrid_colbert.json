@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_float16_binary",
+  "config": "../qdrant-load/configs/scifact/config_float16_binary.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": true,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.85,
+    "hit_rate@k": 0.85,
+    "mrr@k": 0.4655833333333335,
+    "ndcg@k": 0.5620810675857125
+  },
+  "latency": {
+    "mean_ms": 46.062066312879324,
+    "p50_ms": 45.189122000010684,
+    "p95_ms": 54.92256800062023,
+    "p99_ms": 59.5495940069668,
+    "min_ms": 38.24173202156089,
+    "max_ms": 59.5495940069668
+  },
+  "throughput_qps": 59.13457092454319
+}

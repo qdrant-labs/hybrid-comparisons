@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_turbo4_tq1",
+  "config": "../qdrant-load/configs/scifact/config_tubo4_bits1.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": true,
+  "rescorer": "colbert",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.89,
+    "hit_rate@k": 0.89,
+    "mrr@k": 0.4916785714285715,
+    "ndcg@k": 0.5897910510002368
+  },
+  "latency": {
+    "mean_ms": 85.31750057461775,
+    "p50_ms": 87.40275801392272,
+    "p95_ms": 106.56536999158561,
+    "p99_ms": 136.38683600584045,
+    "min_ms": 55.354270967654884,
+    "max_ms": 136.38683600584045
+  },
+  "throughput_qps": 58.20401769460128
+}

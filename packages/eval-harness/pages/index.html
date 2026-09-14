@@ -15,6 +15,7 @@
     --border: #E1E5F0;
     --blue50: #2F6FF0;
     --teal50: #038585;
+    --violet50: #8547FF;
   }
   * { box-sizing: border-box; }
   body {
@@ -42,6 +43,7 @@
   a.report-card .name { font-size: 16px; color: var(--n10); }
   a.report-card .desc { font-size: 13px; color: var(--n50); }
   .reports a:nth-child(2) { border-left-color: var(--teal50); }
+  .reports a:nth-child(3) { border-left-color: var(--violet50); }
   .supplementary { display: flex; flex-direction: column; gap: 6px; }
   .supplementary .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--n60); margin-bottom: 4px; }
   .supplementary a { font-size: 13.5px; color: var(--blue50); text-decoration: none; }
@@ -67,12 +69,17 @@
       <span class="name">dbpedia</span>
       <span class="desc">BeIR/dbpedia-entity-generated-queries &mdash; 100K passages, one generated query per passage</span>
     </a>
+    <a class="report-card" href="scifact.html">
+      <span class="name">scifact</span>
+      <span class="desc">BeIR/scifact-generated-queries &mdash; 15.4K passages, one generated query per passage (100 sampled queries)</span>
+    </a>
   </div>
 
   <div class="supplementary">
     <div class="label">Supplementary charts</div>
     <a href="charts/quality-by-config-colbert.html">recall / mrr / ndcg by quantization config, colbert (msmarco)</a>
     <a href="charts/quality-by-config-colbert-dbpedia.html">recall / mrr / ndcg by quantization config, colbert (dbpedia)</a>
+    <a href="charts/quality-by-config-colbert-scifact.html">recall / mrr / ndcg by quantization config, colbert (scifact)</a>
   </div>
 </div>
 </body>

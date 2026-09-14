@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_binary",
+  "config": "../qdrant-load/configs/scifact/config_binary.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 50,
+  "use_dense_prefetch": true,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.87,
+    "hit_rate@k": 0.87,
+    "mrr@k": 0.4972023809523812,
+    "ndcg@k": 0.5890037375633334
+  },
+  "latency": {
+    "mean_ms": 4997.136934789079,
+    "p50_ms": 5107.908928999677,
+    "p95_ms": 7328.076646983391,
+    "p99_ms": 7662.229743000353,
+    "min_ms": 2009.1199839953333,
+    "max_ms": 7662.229743000353
+  },
+  "throughput_qps": 0.20324651379789116
+}

@@ -10,8 +10,9 @@ import json
 import os
 import random
 import sys
+from collections.abc import Awaitable, Callable
 from functools import lru_cache
-from typing import Awaitable, Callable, Literal, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar
 
 import grpc
 import httpx
@@ -70,6 +71,7 @@ async def with_retries[T](
             )
             await asyncio.sleep(delay)
     raise AssertionError("Cannot be reached")
+
 
 class DenseUploadConfig(BaseModel):
     dtype: models.Datatype | None = None
@@ -159,7 +161,9 @@ def load_config(path: str) -> UploadConfig:
 async def load_points(config_path: str) -> None:
     cfg = load_config(config_path)
     client = get_qdrant_client()
-    exists = await with_retries(client.collection_exists, collection_name=cfg.collection_name)
+    exists = await with_retries(
+        client.collection_exists, collection_name=cfg.collection_name
+    )
     if exists:
         raise RuntimeError(
             f"Collection {cfg.collection_name} already exists. Rename it or delete it before running this commad again"

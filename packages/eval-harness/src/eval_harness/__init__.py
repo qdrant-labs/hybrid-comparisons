@@ -38,7 +38,9 @@ def get_cross_encoder() -> TextCrossEncoder:
     return TextCrossEncoder(model_name=CROSS_ENCODER_MODEL)
 
 
-def load_queries(corpus_path: str, n_queries: int, seed: int) -> tuple[list[EvalQuery], dict[str, set[int]]]:
+def load_queries(
+    corpus_path: str, n_queries: int, seed: int
+) -> tuple[list[EvalQuery], dict[str, set[int]]]:
     """Builds an eval query set straight from the corpus's real, associated
     search queries (no synthetic/LLM generation, no separate query dir):
     for each sampled passage with at least one real query, pick one of its
@@ -100,7 +102,9 @@ async def search(
         # no second-stage rescore at all: dense + sparse prefetch, fused by
         # RRF, *is* the final result.
         if not use_dense_prefetch:
-            raise ValueError("rescorer='rrf' needs use_dense_prefetch=True (RRF fuses >=2 sources)")
+            raise ValueError(
+                "rescorer='rrf' needs use_dense_prefetch=True (RRF fuses >=2 sources)"
+            )
         result = await with_retries(
             client.query_points,
             collection_name=collection_name,
@@ -153,11 +157,18 @@ async def search(
             limit=prefetch_limit,
             with_payload=["pid", "text"],
         )
-    candidates = [(cast(int, p.id), cast(dict[str, Any], p.payload)["text"]) for p in result.points]
+    candidates = [
+        (cast(int, p.id), cast(dict[str, Any], p.payload)["text"])
+        for p in result.points
+    ]
     if not candidates:
         return []
-    scores = list(get_cross_encoder().rerank(query_text, [text for _, text in candidates]))
-    ranked = sorted(zip(scores, (pid for pid, _ in candidates)), key=lambda x: x[0], reverse=True)
+    scores = list(
+        get_cross_encoder().rerank(query_text, [text for _, text in candidates])
+    )
+    ranked = sorted(
+        zip(scores, (pid for pid, _ in candidates)), key=lambda x: x[0], reverse=True
+    )
     return [pid for _, pid in ranked[:k]]
 
 
@@ -223,7 +234,13 @@ async def bench_latency(
     for i, (qid, query_text, _) in enumerate(queries):
         start = time.perf_counter()
         ids = await search(
-            client, collection_name, query_text, k, prefetch_limit, use_dense_prefetch, rescorer
+            client,
+            collection_name,
+            query_text,
+            k,
+            prefetch_limit,
+            use_dense_prefetch,
+            rescorer,
         )
         elapsed = time.perf_counter() - start
         if i >= warmup:
@@ -248,7 +265,13 @@ async def bench_throughput(
         _, query_text, _ = q
         async with semaphore:
             return await search(
-                client, collection_name, query_text, k, prefetch_limit, use_dense_prefetch, rescorer
+                client,
+                collection_name,
+                query_text,
+                k,
+                prefetch_limit,
+                use_dense_prefetch,
+                rescorer,
             )
 
     start = time.perf_counter()
@@ -261,31 +284,52 @@ RESCORER_TAGS = {"colbert": "colbert", "cross-encoder": "ce", "rrf": "rrf"}
 
 
 def report_filename(
-    collection_name: str, k: int, prefetch_limit: int, use_dense_prefetch: bool, rescorer: str
+    collection_name: str,
+    k: int,
+    prefetch_limit: int,
+    use_dense_prefetch: bool,
+    rescorer: str,
 ) -> str:
     prefetch_tag = "hybrid" if use_dense_prefetch else "sparseonly"
     rescorer_tag = RESCORER_TAGS[rescorer]
-    return f"{collection_name}_k{k}_pf{prefetch_limit}_{prefetch_tag}_{rescorer_tag}.json"
+    return (
+        f"{collection_name}_k{k}_pf{prefetch_limit}_{prefetch_tag}_{rescorer_tag}.json"
+    )
 
 
 def report_path(out_dir: Path, report: dict[str, Any]) -> Path:
     return out_dir / report_filename(
-        report["collection_name"], report["k"], report["prefetch_limit"],
-        report["use_dense_prefetch"], report["rescorer"],
+        report["collection_name"],
+        report["k"],
+        report["prefetch_limit"],
+        report["use_dense_prefetch"],
+        report["rescorer"],
     )
 
 
 def existing_report_paths(
-    out_dir: Path, collection_name: str, k: int, prefetch_limit: int, use_dense_prefetch: bool, rescorer: str
+    out_dir: Path,
+    collection_name: str,
+    k: int,
+    prefetch_limit: int,
+    use_dense_prefetch: bool,
+    rescorer: str,
 ) -> list[Path]:
     """Every filename a report for this combination could have been written
     under -- including the legacy naming (no rescorer suffix) from before
     multiple rescorers existed, back when every run was implicitly colbert.
     """
-    paths = [out_dir / report_filename(collection_name, k, prefetch_limit, use_dense_prefetch, rescorer)]
+    paths = [
+        out_dir
+        / report_filename(
+            collection_name, k, prefetch_limit, use_dense_prefetch, rescorer
+        )
+    ]
     if rescorer == "colbert":
         prefetch_tag = "hybrid" if use_dense_prefetch else "sparseonly"
-        paths.append(out_dir / f"{collection_name}_k{k}_pf{prefetch_limit}_{prefetch_tag}.json")
+        paths.append(
+            out_dir / f"{collection_name}_k{k}_pf{prefetch_limit}_{prefetch_tag}.json"
+        )
     return paths
 
 
@@ -315,13 +359,21 @@ async def run_sweep(
     """
     cfg = load_config(config_path)
     client = get_qdrant_client()
-    already_exists = await with_retries(client.collection_exists, collection_name=cfg.collection_name)
+    already_exists = await with_retries(
+        client.collection_exists, collection_name=cfg.collection_name
+    )
     if already_exists and fresh:
-        print(f"--fresh: deleting existing collection {cfg.collection_name} before re-uploading")
-        await with_retries(client.delete_collection, collection_name=cfg.collection_name)
+        print(
+            f"--fresh: deleting existing collection {cfg.collection_name} before re-uploading"
+        )
+        await with_retries(
+            client.delete_collection, collection_name=cfg.collection_name
+        )
         already_exists = False
     if already_exists:
-        print(f"Collection {cfg.collection_name} already exists -- reusing it (no re-upload)")
+        print(
+            f"Collection {cfg.collection_name} already exists -- reusing it (no re-upload)"
+        )
     else:
         await load_points(config_path)
     try:
@@ -340,7 +392,9 @@ async def run_sweep(
         for use_dense_prefetch in modes:
             for rescorer in rescorers:
                 if rescorer == "rrf" and not use_dense_prefetch:
-                    print("skip: mode=sparseonly rescorer=rrf (rrf needs dense+sparse to fuse)")
+                    print(
+                        "skip: mode=sparseonly rescorer=rrf (rrf needs dense+sparse to fuse)"
+                    )
                     continue
                 for k in k_values:
                     for prefetch_limit in prefetch_values:
@@ -354,9 +408,14 @@ async def run_sweep(
 
                         if not overwrite:
                             done = [
-                                p for p in existing_report_paths(
-                                    out_dir, cfg.collection_name, k, prefetch_limit,
-                                    use_dense_prefetch, rescorer,
+                                p
+                                for p in existing_report_paths(
+                                    out_dir,
+                                    cfg.collection_name,
+                                    k,
+                                    prefetch_limit,
+                                    use_dense_prefetch,
+                                    rescorer,
                                 )
                                 if p.exists()
                             ]
@@ -373,14 +432,26 @@ async def run_sweep(
                             f"rescorer={rescorer} k={k} prefetch_limit={prefetch_limit} ==="
                         )
                         results, latencies = await bench_latency(
-                            client, cfg.collection_name, queries, k, prefetch_limit,
-                            warmup, use_dense_prefetch, rescorer,
+                            client,
+                            cfg.collection_name,
+                            queries,
+                            k,
+                            prefetch_limit,
+                            warmup,
+                            use_dense_prefetch,
+                            rescorer,
                         )
                         quality = compute_quality(results, qrels)
                         latency = latency_stats(latencies)
                         qps = await bench_throughput(
-                            client, cfg.collection_name, queries, k, prefetch_limit,
-                            concurrency, use_dense_prefetch, rescorer,
+                            client,
+                            cfg.collection_name,
+                            queries,
+                            k,
+                            prefetch_limit,
+                            concurrency,
+                            use_dense_prefetch,
+                            rescorer,
                         )
 
                         report = {
@@ -403,7 +474,9 @@ async def run_sweep(
                         print(f"Wrote report to {out_path}")
                         reports.append(report)
     finally:
-        await with_retries(client.delete_collection, collection_name=cfg.collection_name)
+        await with_retries(
+            client.delete_collection, collection_name=cfg.collection_name
+        )
     return reports
 
 
@@ -436,7 +509,9 @@ def parse_mode_list(s: str) -> list[bool]:
         elif m == "sparseonly":
             result.append(False)
         else:
-            raise ValueError(f"Unknown prefetch mode: {m!r} (expected 'hybrid' or 'sparseonly')")
+            raise ValueError(
+                f"Unknown prefetch mode: {m!r} (expected 'hybrid' or 'sparseonly')"
+            )
     return result
 
 
@@ -444,7 +519,9 @@ def parse_rescorer_list(s: str) -> list[str]:
     rescorers = [x.strip() for x in s.split(",") if x.strip()]
     for r in rescorers:
         if r not in ("colbert", "cross-encoder", "rrf"):
-            raise ValueError(f"Unknown rescorer: {r!r} (expected colbert, cross-encoder or rrf)")
+            raise ValueError(
+                f"Unknown rescorer: {r!r} (expected colbert, cross-encoder or rrf)"
+            )
     return rescorers
 
 
@@ -463,9 +540,13 @@ def main() -> None:
         help="number of real corpus queries to sample for evaluation",
     )
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--k", default="3", help="comma-separated list of k values, e.g. 10,20")
     parser.add_argument(
-        "--prefetch-limit", default="5", help="comma-separated list of prefetch_limit values"
+        "--k", default="3", help="comma-separated list of k values, e.g. 10,20"
+    )
+    parser.add_argument(
+        "--prefetch-limit",
+        default="5",
+        help="comma-separated list of prefetch_limit values",
     )
     parser.add_argument(
         "--modes",

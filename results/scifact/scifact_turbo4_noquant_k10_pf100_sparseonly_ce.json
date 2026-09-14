@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_turbo4_noquant",
+  "config": "../qdrant-load/configs/scifact/config_turbo4_noquant.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": false,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.85,
+    "hit_rate@k": 0.85,
+    "mrr@k": 0.45507936507936514,
+    "ndcg@k": 0.5525882891993333
+  },
+  "latency": {
+    "mean_ms": 8705.582253546325,
+    "p50_ms": 8128.013010020368,
+    "p95_ms": 12624.730505980551,
+    "p99_ms": 12771.772031963337,
+    "min_ms": 2189.773109043017,
+    "max_ms": 12771.772031963337
+  },
+  "throughput_qps": 0.11650293384729855
+}

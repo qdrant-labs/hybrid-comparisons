@@ -1,0 +1,25 @@
+{
+  "collection_name": "scifact_float16_noquant",
+  "config": "../qdrant-load/configs/scifact/config_float16_noquant.yml",
+  "n_queries": 100,
+  "k": 10,
+  "prefetch_limit": 100,
+  "use_dense_prefetch": true,
+  "rescorer": "cross-encoder",
+  "concurrency": 8,
+  "quality": {
+    "recall@k": 0.86,
+    "hit_rate@k": 0.86,
+    "mrr@k": 0.4782460317460319,
+    "ndcg@k": 0.5720906871561465
+  },
+  "latency": {
+    "mean_ms": 8276.330760810783,
+    "p50_ms": 7927.828147978289,
+    "p95_ms": 12667.717848002212,
+    "p99_ms": 12885.140047001187,
+    "min_ms": 3617.331195011502,
+    "max_ms": 12885.140047001187
+  },
+  "throughput_qps": 0.12343735884149282
+}
