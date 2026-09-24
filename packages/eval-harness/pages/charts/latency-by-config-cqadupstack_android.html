@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --wash: #e2e7f5; --card: #ffffff;
+    --n30: #28324d; --n50: #576280; --n70: #8f98b2; --n90: #d4d9e6; --grid: #e1e5f0;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:40px; background:var(--wash); font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+  .frame { max-width:1180px; margin:0 auto; background:var(--card); border-radius:16px; padding:44px 48px 36px; }
+  .legend { display:flex; gap:32px; flex-wrap:wrap; align-items:center; }
+  .legend-group { display:flex; align-items:center; gap:10px; }
+  .swatch { width:15px; height:15px; border-radius:3px; display:inline-block; }
+  .legend-label { font-size:14px; color:var(--n30); }
+  svg text { font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="frame">
+<div class="legend"><span class="legend-group"><span class="swatch" style="background:#2f6ff0"></span><span class="legend-label">p50</span></span><span class="legend-group"><span class="swatch" style="background:#038585"></span><span class="legend-label">p99</span></span></div>
+<svg viewBox="-60 0 1240 500" width="100%" height="auto" style="overflow:visible; display:block; margin-top:22px">
+<line x1="76" x2="1156" y1="400.00" y2="400.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="404.00" text-anchor="end" font-size="14" fill="var(--n70)">0</text>
+<line x1="76" x2="1156" y1="306.00" y2="306.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="310.00" text-anchor="end" font-size="14" fill="var(--n70)">500</text>
+<line x1="76" x2="1156" y1="212.00" y2="212.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="216.00" text-anchor="end" font-size="14" fill="var(--n70)">1000</text>
+<line x1="76" x2="1156" y1="118.00" y2="118.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="122.00" text-anchor="end" font-size="14" fill="var(--n70)">1500</text>
+<line x1="76" x2="1156" y1="24.00" y2="24.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="28.00" text-anchor="end" font-size="14" fill="var(--n70)">2000</text>
+<line x1="76" x2="1156" y1="400" y2="400" stroke="var(--n90)" stroke-width="1.5"/>
+<text x="-40" y="212.00" text-anchor="middle" font-size="14.5" fill="var(--n50)" transform="rotate(-90 -40 212.00)">latency, ms</text>
+<text x="616.00" y="480" text-anchor="middle" font-size="14.5" fill="var(--n50)">quantization config, colbert rescorer (hybrid prefetch, k=20, pf=100)</text>
+<rect x="119.50" y="374.45" width="20" height="25.55" rx="4" fill="#2f6ff0"/>
+<text x="129.50" y="364.45" text-anchor="middle" font-size="12.5" fill="var(--n30)">136</text>
+<rect x="147.50" y="348.49" width="20" height="51.51" rx="4" fill="#038585"/>
+<text x="157.50" y="338.49" text-anchor="middle" font-size="12.5" fill="var(--n30)">274</text>
+<text x="143.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="143.50" dy="16">(f32)</tspan></text>
+<rect x="254.50" y="374.13" width="20" height="25.87" rx="4" fill="#2f6ff0"/>
+<text x="264.50" y="364.13" text-anchor="middle" font-size="12.5" fill="var(--n30)">138</text>
+<rect x="282.50" y="345.94" width="20" height="54.06" rx="4" fill="#038585"/>
+<text x="292.50" y="335.94" text-anchor="middle" font-size="12.5" fill="var(--n30)">288</text>
+<text x="278.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="278.50" dy="16">(f16)</tspan></text>
+<rect x="389.50" y="373.42" width="20" height="26.58" rx="4" fill="#2f6ff0"/>
+<text x="399.50" y="363.42" text-anchor="middle" font-size="12.5" fill="var(--n30)">141</text>
+<rect x="417.50" y="349.41" width="20" height="50.59" rx="4" fill="#038585"/>
+<text x="427.50" y="339.41" text-anchor="middle" font-size="12.5" fill="var(--n30)">269</text>
+<text x="413.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="413.50" dy="16">(turbo4)</tspan></text>
+<rect x="524.50" y="374.75" width="20" height="25.25" rx="4" fill="#2f6ff0"/>
+<text x="534.50" y="364.75" text-anchor="middle" font-size="12.5" fill="var(--n30)">134</text>
+<rect x="552.50" y="338.10" width="20" height="61.90" rx="4" fill="#038585"/>
+<text x="562.50" y="328.10" text-anchor="middle" font-size="12.5" fill="var(--n30)">329</text>
+<text x="548.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">scalar<tspan x="548.50" dy="16">int8</tspan></text>
+<rect x="659.50" y="372.28" width="20" height="27.72" rx="4" fill="#2f6ff0"/>
+<text x="669.50" y="362.28" text-anchor="middle" font-size="12.5" fill="var(--n30)">147</text>
+<rect x="687.50" y="344.19" width="20" height="55.81" rx="4" fill="#038585"/>
+<text x="697.50" y="334.19" text-anchor="middle" font-size="12.5" fill="var(--n30)">297</text>
+<text x="683.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">product<tspan x="683.50" dy="16">x16</tspan></text>
+<rect x="794.50" y="372.33" width="20" height="27.67" rx="4" fill="#2f6ff0"/>
+<text x="804.50" y="362.33" text-anchor="middle" font-size="12.5" fill="var(--n30)">147</text>
+<rect x="822.50" y="167.55" width="20" height="232.45" rx="4" fill="#038585"/>
+<text x="832.50" y="157.55" text-anchor="middle" font-size="12.5" fill="var(--n30)">1236</text>
+<text x="818.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="818.50" dy="16">(f32)</tspan></text>
+<rect x="929.50" y="373.93" width="20" height="26.07" rx="4" fill="#2f6ff0"/>
+<text x="939.50" y="363.93" text-anchor="middle" font-size="12.5" fill="var(--n30)">139</text>
+<rect x="957.50" y="345.08" width="20" height="54.92" rx="4" fill="#038585"/>
+<text x="967.50" y="335.08" text-anchor="middle" font-size="12.5" fill="var(--n30)">292</text>
+<text x="953.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="953.50" dy="16">(f16)</tspan></text>
+<rect x="1064.50" y="370.93" width="20" height="29.07" rx="4" fill="#2f6ff0"/>
+<text x="1074.50" y="360.93" text-anchor="middle" font-size="12.5" fill="var(--n30)">155</text>
+<rect x="1092.50" y="344.11" width="20" height="55.89" rx="4" fill="#038585"/>
+<text x="1102.50" y="334.11" text-anchor="middle" font-size="12.5" fill="var(--n30)">297</text>
+<text x="1088.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">turbo4<tspan x="1088.50" dy="16">tq1</tspan></text>
+</svg>
+</div>
+</body>
+</html>

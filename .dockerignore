@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*_cache/
+results/
+data/
+.github/
+.claude/

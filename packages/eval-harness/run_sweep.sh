@@ -31,7 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 CONFIG_DIR="../qdrant-load/configs"
-N_QUERIES="${N_QUERIES:-500}"
+N_QUERIES="${N_QUERIES:-}"  # empty means "use every available eligible query"
 SEED="${SEED:-42}"
 OUTPUT_DIR="${OUTPUT_DIR:-../../results}"
 WARMUP="${WARMUP:-10}"
@@ -43,11 +43,16 @@ PREFETCH_MODES="${PREFETCH_MODES:-hybrid,sparseonly}"
 RESCORERS="${RESCORERS:-colbert}"
 OVERWRITE="${OVERWRITE:-0}"
 FRESH="${FRESH:-0}"
+PRE_EMBEDDED="${PRE_EMBEDDED:-0}"
 
 OVERWRITE_FLAG=""
 [ "$OVERWRITE" = "1" ] && OVERWRITE_FLAG="--overwrite"
 FRESH_FLAG=""
 [ "$FRESH" = "1" ] && FRESH_FLAG="--fresh"
+PRE_EMBEDDED_FLAG=""
+[ "$PRE_EMBEDDED" = "1" ] && PRE_EMBEDDED_FLAG="--pre-embedded"
+N_QUERIES_FLAG=""
+[ -n "$N_QUERIES" ] && N_QUERIES_FLAG="--n-queries $N_QUERIES"
 
 if [ "$#" -gt 0 ]; then
     CONFIGS=("$@")
@@ -65,7 +70,7 @@ echo
 for cfg in "${CONFIGS[@]}"; do
     echo "=== $cfg (single upload, sweeping all settings) ==="
     eval-harness "$cfg" \
-        --n-queries "$N_QUERIES" \
+        $N_QUERIES_FLAG \
         --seed "$SEED" \
         --k "$K_VALUES" \
         --prefetch-limit "$PREFETCH_VALUES" \
@@ -74,7 +79,7 @@ for cfg in "${CONFIGS[@]}"; do
         --warmup "$WARMUP" \
         --concurrency "$CONCURRENCY" \
         --output-dir "$OUTPUT_DIR" \
-        $OVERWRITE_FLAG $FRESH_FLAG
+        $OVERWRITE_FLAG $FRESH_FLAG $PRE_EMBEDDED_FLAG
     echo
 done
 

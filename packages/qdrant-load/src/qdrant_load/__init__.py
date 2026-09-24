@@ -6,13 +6,15 @@ embedding step is needed at all.
 """
 
 import asyncio
+import gzip
 import json
 import os
 import random
 import sys
+import uuid
 from collections.abc import Awaitable, Callable
 from functools import lru_cache
-from typing import Literal, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar, overload
 
 import grpc
 import httpx
@@ -26,9 +28,10 @@ SPARSE_MODEL = "Qdrant/bm25"
 COLBERT_MODEL = "answerdotai/answerai-colbert-small-v1"
 
 DENSE_SIZE = 384
+PRE_EMBEDDED_DENSE_SIZE = 1024
 COLBERT_SIZE = 96
 
-UPLOAD_BATCH_SIZE = 500
+UPLOAD_BATCH_SIZE = 100
 
 # Transient network/connection failures worth retrying -- not validation
 # errors or other permanent 4xx failures, which should surface immediately.
@@ -36,6 +39,7 @@ RETRYABLE_EXCEPTIONS = (
     ResponseHandlingException,
     httpx.TransportError,
     httpx.TimeoutException,
+    httpx.HTTPStatusError,
     grpc.aio.AioRpcError,
     ConnectionError,
     TimeoutError,
@@ -62,6 +66,13 @@ async def with_retries[T](
         try:
             return await fn(*args, **kwargs)
         except RETRYABLE_EXCEPTIONS as e:
+            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code not in [
+                429,
+                500,
+                502,
+                503,
+            ]:
+                raise
             if attempt == retries:
                 raise
             delay = min(max_delay, base_delay * (2**attempt)) * (0.5 + random.random())
@@ -102,6 +113,7 @@ class DataConfig(BaseModel):
 class UploadConfig(BaseModel):
     collection_name: str
     data: DataConfig
+    pre_embedded: bool = False
     sparse_vectors: SparseUploadConfig = SparseUploadConfig()
     dense_vectors: DenseUploadConfig = DenseUploadConfig()
     colbert_vectors: DenseUploadConfig = DenseUploadConfig()
@@ -113,26 +125,62 @@ class CorpusRow(TypedDict):
     queries: list[str]
 
 
-def load_corpus(path: str) -> list[CorpusRow]:
+class Passage(TypedDict):
+    _id: str
+    title: str
+    text: str
+    emb: list[float]
+
+
+@overload
+def load_corpus(path: str, pre_embedded: Literal[False]) -> list[CorpusRow]: ...
+
+
+@overload
+def load_corpus(path: str, pre_embedded: Literal[True]) -> list[Passage]: ...
+
+
+def load_corpus(
+    path: str, pre_embedded: Literal[True, False] = False
+) -> list[CorpusRow] | list[Passage]:
     """Loads the JSONL corpus written by download-data: one
     {"pid", "text", "queries"} object per line.
+
+    If pre-embedded, it loads a Passage
     """
-    rows: list[CorpusRow] = []
-    with open(path, "r") as f:
+    if not pre_embedded:
+        rows: list[CorpusRow] = []
+        with open(path, "r") as f:
+            for line in f:
+                rows.append(json.loads(line))
+        return rows
+    passages: list[Passage] = []
+    with gzip.open(path, "rt", encoding="utf-8") as f:
         for line in f:
-            rows.append(json.loads(line))
-    return rows
+            passages.append(json.loads(line))
+
+    return passages
 
 
-def to_point(row: CorpusRow) -> models.PointStruct:
+def to_point(row: CorpusRow | Passage) -> models.PointStruct:
+    if "pid" in row:
+        return models.PointStruct(
+            id=row["pid"],
+            vector={
+                "dense": models.Document(text=row["text"], model=DENSE_MODEL),
+                "sparse": models.Document(text=row["text"], model=SPARSE_MODEL),
+                "colbert": models.Document(text=row["text"], model=COLBERT_MODEL),
+            },
+            payload={"pid": row["pid"], "text": row["text"]},
+        )
     return models.PointStruct(
-        id=row["pid"],
+        id=str(uuid.uuid5(uuid.NAMESPACE_DNS, row["_id"])),
         vector={
-            "dense": models.Document(text=row["text"], model=DENSE_MODEL),
+            "dense": row["emb"],
             "sparse": models.Document(text=row["text"], model=SPARSE_MODEL),
             "colbert": models.Document(text=row["text"], model=COLBERT_MODEL),
         },
-        payload={"pid": row["pid"], "text": row["text"]},
+        payload={"pid": row["_id"], "text": row["text"]},
     )
 
 
@@ -173,7 +221,7 @@ async def load_points(config_path: str) -> None:
         collection_name=cfg.collection_name,
         vectors_config={
             "dense": models.VectorParams(
-                size=DENSE_SIZE,
+                size=DENSE_SIZE if not cfg.pre_embedded else PRE_EMBEDDED_DENSE_SIZE,
                 distance=models.Distance.COSINE,
                 hnsw_config=cfg.dense_vectors.hnsw_config,
                 quantization_config=cfg.dense_vectors.quantization_config,
@@ -197,7 +245,7 @@ async def load_points(config_path: str) -> None:
             )
         },
     )
-    corpus = load_corpus(cfg.data.corpus.path)
+    corpus = load_corpus(cfg.data.corpus.path, cfg.pre_embedded)
     # upload_points already retries internally (network hiccups during a
     # single batch), this just widens that safety margin a bit.
     client.upload_points(
@@ -206,6 +254,7 @@ async def load_points(config_path: str) -> None:
         batch_size=UPLOAD_BATCH_SIZE,
         max_retries=5,
     )
+
     print(f"Done uploading {len(corpus)} passages to {cfg.collection_name}!")
 
 
