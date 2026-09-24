@@ -30,5 +30,6 @@ def main() -> None:
             out.write(json.dumps({"pid": pid, "text": text, "queries": queries}) + "\n")
     print(f"Successfully wrote {N_ROWS} passages (with queries) to {path}")
 
+
 if __name__ == "__main__":
     main()

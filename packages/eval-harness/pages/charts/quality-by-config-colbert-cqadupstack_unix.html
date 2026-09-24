@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --wash: #e2e7f5; --card: #ffffff;
+    --n30: #28324d; --n50: #576280; --n70: #8f98b2; --n90: #d4d9e6; --grid: #e1e5f0;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:40px; background:var(--wash); font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+  .frame { max-width:1180px; margin:0 auto; background:var(--card); border-radius:16px; padding:44px 48px 36px; }
+  .legend { display:flex; gap:32px; flex-wrap:wrap; align-items:center; }
+  .legend-group { display:flex; align-items:center; gap:10px; }
+  .swatch { width:15px; height:15px; border-radius:3px; display:inline-block; }
+  .legend-label { font-size:14px; color:var(--n30); }
+  svg text { font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="frame">
+<div class="legend"><span class="legend-group"><span class="swatch" style="background:#0040a1"></span><span class="legend-label">recall@20</span></span><span class="legend-group"><span class="swatch" style="background:#2f6ff0"></span><span class="legend-label">mrr@20</span></span><span class="legend-group"><span class="swatch" style="background:#89a9ff"></span><span class="legend-label">ndcg@20</span></span></div>
+<svg viewBox="-60 0 1240 500" width="100%" height="auto" style="overflow:visible; display:block; margin-top:22px">
+<line x1="76" x2="1156" y1="400.00" y2="400.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="404.00" text-anchor="end" font-size="14" fill="var(--n70)">0</text>
+<line x1="76" x2="1156" y1="306.00" y2="306.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="310.00" text-anchor="end" font-size="14" fill="var(--n70)">25</text>
+<line x1="76" x2="1156" y1="212.00" y2="212.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="216.00" text-anchor="end" font-size="14" fill="var(--n70)">50</text>
+<line x1="76" x2="1156" y1="118.00" y2="118.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="122.00" text-anchor="end" font-size="14" fill="var(--n70)">75</text>
+<line x1="76" x2="1156" y1="24.00" y2="24.00" stroke="var(--grid)" stroke-width="1"/>
+<text x="68" y="28.00" text-anchor="end" font-size="14" fill="var(--n70)">100</text>
+<line x1="76" x2="1156" y1="400" y2="400" stroke="var(--n90)" stroke-width="1.5"/>
+<text x="-40" y="212.00" text-anchor="middle" font-size="14.5" fill="var(--n50)" transform="rotate(-90 -40 212.00)">score (0–100 scale)</text>
+<text x="616.00" y="480" text-anchor="middle" font-size="14.5" fill="var(--n50)">quantization config, colbert rescorer (hybrid prefetch, k=20, pf=100)</text>
+<rect x="105.50" y="203.25" width="20" height="196.75" rx="4" fill="#0040a1"/>
+<text x="115.50" y="193.25" text-anchor="middle" font-size="12.5" fill="var(--n30)">52.3</text>
+<rect x="133.50" y="263.05" width="20" height="136.95" rx="4" fill="#2f6ff0"/>
+<text x="143.50" y="253.05" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.4</text>
+<rect x="161.50" y="256.80" width="20" height="143.20" rx="4" fill="#89a9ff"/>
+<text x="171.50" y="246.80" text-anchor="middle" font-size="12.5" fill="var(--n30)">38.1</text>
+<text x="143.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="143.50" dy="16">(f32)</tspan></text>
+<rect x="240.50" y="203.25" width="20" height="196.75" rx="4" fill="#0040a1"/>
+<text x="250.50" y="193.25" text-anchor="middle" font-size="12.5" fill="var(--n30)">52.3</text>
+<rect x="268.50" y="263.03" width="20" height="136.97" rx="4" fill="#2f6ff0"/>
+<text x="278.50" y="253.03" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.4</text>
+<rect x="296.50" y="256.79" width="20" height="143.21" rx="4" fill="#89a9ff"/>
+<text x="306.50" y="246.79" text-anchor="middle" font-size="12.5" fill="var(--n30)">38.1</text>
+<text x="278.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="278.50" dy="16">(f16)</tspan></text>
+<rect x="375.50" y="203.17" width="20" height="196.83" rx="4" fill="#0040a1"/>
+<text x="385.50" y="193.17" text-anchor="middle" font-size="12.5" fill="var(--n30)">52.3</text>
+<rect x="403.50" y="263.51" width="20" height="136.49" rx="4" fill="#2f6ff0"/>
+<text x="413.50" y="253.51" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.3</text>
+<rect x="431.50" y="257.11" width="20" height="142.89" rx="4" fill="#89a9ff"/>
+<text x="441.50" y="247.11" text-anchor="middle" font-size="12.5" fill="var(--n30)">38.0</text>
+<text x="413.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">no-quant<tspan x="413.50" dy="16">(turbo4)</tspan></text>
+<rect x="510.50" y="205.00" width="20" height="195.00" rx="4" fill="#0040a1"/>
+<text x="520.50" y="195.00" text-anchor="middle" font-size="12.5" fill="var(--n30)">51.9</text>
+<rect x="538.50" y="263.25" width="20" height="136.75" rx="4" fill="#2f6ff0"/>
+<text x="548.50" y="253.25" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.4</text>
+<rect x="566.50" y="257.30" width="20" height="142.70" rx="4" fill="#89a9ff"/>
+<text x="576.50" y="247.30" text-anchor="middle" font-size="12.5" fill="var(--n30)">38.0</text>
+<text x="548.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">scalar<tspan x="548.50" dy="16">int8</tspan></text>
+<rect x="645.50" y="207.75" width="20" height="192.25" rx="4" fill="#0040a1"/>
+<text x="655.50" y="197.75" text-anchor="middle" font-size="12.5" fill="var(--n30)">51.1</text>
+<rect x="673.50" y="265.32" width="20" height="134.68" rx="4" fill="#2f6ff0"/>
+<text x="683.50" y="255.32" text-anchor="middle" font-size="12.5" fill="var(--n30)">35.8</text>
+<rect x="701.50" y="259.28" width="20" height="140.72" rx="4" fill="#89a9ff"/>
+<text x="711.50" y="249.28" text-anchor="middle" font-size="12.5" fill="var(--n30)">37.4</text>
+<text x="683.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">product<tspan x="683.50" dy="16">x16</tspan></text>
+<rect x="780.50" y="203.19" width="20" height="196.81" rx="4" fill="#0040a1"/>
+<text x="790.50" y="193.19" text-anchor="middle" font-size="12.5" fill="var(--n30)">52.3</text>
+<rect x="808.50" y="263.32" width="20" height="136.68" rx="4" fill="#2f6ff0"/>
+<text x="818.50" y="253.32" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.4</text>
+<rect x="836.50" y="257.01" width="20" height="142.99" rx="4" fill="#89a9ff"/>
+<text x="846.50" y="247.01" text-anchor="middle" font-size="12.5" fill="var(--n30)">38.0</text>
+<text x="818.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="818.50" dy="16">(f32)</tspan></text>
+<rect x="915.50" y="204.56" width="20" height="195.44" rx="4" fill="#0040a1"/>
+<text x="925.50" y="194.56" text-anchor="middle" font-size="12.5" fill="var(--n30)">52.0</text>
+<rect x="943.50" y="263.42" width="20" height="136.58" rx="4" fill="#2f6ff0"/>
+<text x="953.50" y="253.42" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.3</text>
+<rect x="971.50" y="257.35" width="20" height="142.65" rx="4" fill="#89a9ff"/>
+<text x="981.50" y="247.35" text-anchor="middle" font-size="12.5" fill="var(--n30)">37.9</text>
+<text x="953.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">binary<tspan x="953.50" dy="16">(f16)</tspan></text>
+<rect x="1050.50" y="216.42" width="20" height="183.58" rx="4" fill="#0040a1"/>
+<text x="1060.50" y="206.42" text-anchor="middle" font-size="12.5" fill="var(--n30)">48.8</text>
+<rect x="1078.50" y="264.57" width="20" height="135.43" rx="4" fill="#2f6ff0"/>
+<text x="1088.50" y="254.57" text-anchor="middle" font-size="12.5" fill="var(--n30)">36.0</text>
+<rect x="1106.50" y="260.41" width="20" height="139.59" rx="4" fill="#89a9ff"/>
+<text x="1116.50" y="250.41" text-anchor="middle" font-size="12.5" fill="var(--n30)">37.1</text>
+<text x="1088.50" y="424" text-anchor="middle" font-size="13" fill="var(--n50)">turbo4<tspan x="1088.50" dy="16">tq1</tspan></text>
+</svg>
+</div>
+</body>
+</html>

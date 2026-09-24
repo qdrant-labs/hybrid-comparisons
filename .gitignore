@@ -8,3 +8,4 @@ embeddings/
 packages/model-converter/
 .env
 .claude/
+jobs/

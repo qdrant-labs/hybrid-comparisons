@@ -1,24 +1,18 @@
 [project]
-name = "eval-harness"
+name = "download-pre-embedded"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
     { email = "astraberte9@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
-    "aiofiles>=25.1.0",
-    "httpx>=0.28.0",
-    "qdrant-client>=1.19.0",
-    "qdrant-load",
+    "datasets>=5.0.1",
 ]
 
-[tool.uv.sources]
-qdrant-load = { workspace = true }
-
 [project.scripts]
-eval-harness = "eval_harness:main"
+download-pre-embedded = "download_pre_embedded:main"
 
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
